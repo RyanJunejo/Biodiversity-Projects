@@ -15,10 +15,8 @@ This repository contains code, data, and documentation for our project on evalua
 - [Results](#results)
 - [Lessons Learned](#lessons-learned)
 - [Future Work](#future-work)
-- [Installation](#installation)
-- [Usage](#usage)
 - [Contributing](#contributing)
-- [License](#license)
+
 
 ---
 
@@ -74,3 +72,6 @@ This project opens up potential research directions:
 1. **Refined RAG Methodologies**: Further enhance RAG approaches for improved species classification.
 2. **iNat Community Contribution**: Investigate ways to incorporate iNaturalist community contributions for model refinement.
 3. **Hybrid Models**: Combine Hiera’s hierarchical capabilities with BioCLIP’s embedding-based approach for more robust results.
+
+## Contributions
+Thank you to Graham Taylor for supervising my work at the Vector Institute. Thank you to Nate Lesperance for being a great mentor and advisor. Big Shoutout to the Unviersity of Guelph's Machine Learning Reading Group. Lastly, a huge thanks to the Inaturalist community without whom this project never could've happened.
