@@ -14,7 +14,7 @@ This repository contains Jupyter Notebook files related to the BioClip project, 
   The original analysis notebook for applying BioClip to the iNaturalist dataset. This notebook details the methodology and results of the analysis.
 
 - **How to Navigate iNaturalist (1).ipynb**  
-  A tutorial notebook designed to help users understand how to navigate and utilize the iNaturalist platform effectively, with tips for data collection and observation.
+  A tutorial notebook designed to help users at the Vector Institute understand how to navigate and utilize the iNaturalist platform effectively, with tips for observation.
 
 - **openclippy2 (1).ipynb**  
   A notebook that explores the application of OpenCLIP on the iNaturalist dataset, showcasing its capabilities and analysis techniques.
@@ -23,13 +23,13 @@ This repository contains Jupyter Notebook files related to the BioClip project, 
   A follow-up notebook that presents the results obtained from using OpenCLIP on the dataset, including detailed analysis and visualizations.
 
 - **rarespecies-common-taxi-nointro.ipynb**  
-  An analysis focused on rare species using BioClip, excluding introductory content. This notebook dives directly into the evaluation metrics.
+   A comprehensive analysis of rare species data using BioClip, including both common and taxonomical names but without using the preamble "An image of".
 
 - **rarespecies-common-taxi.ipynb**  
   A comprehensive analysis of rare species data using BioClip, including both common and taxonomical names, along with various evaluation metrics.
 
 - **rarespecies-common.ipynb**  
-  An analysis of rare species data using BioClip that utilizes common names only, focusing on different evaluation metrics without introductory content.
+  An analysis of rare species data using BioClip that utilizes common names only, focusing on different evaluation metrics with introductory content.
 
 ### Other Files
 
