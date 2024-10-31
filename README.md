@@ -2,7 +2,7 @@
 
 Hello! This is a collection of the work I did at my internship at the Vector Institute under the supervision of Graham Taylor.
 This repository contains code, data, and documentation for our project on evaluating machine learning models for species classification, focusing on biodiversity conservation. This project compares various models to assess their effectiveness in classifying species, particularly rare and underrepresented ones. The project also proposes novel methodologies for model evaluation to improve species classification accuracy and robustness.
-
+I strongly suggest you click on the powerpoint presentation with the same name to learn more!
 
 ## Table of Contents
 - [Introduction](#introduction)
