@@ -4,7 +4,7 @@
 resize to a square, horizontal flip, RandAugment, ImageNet normalisation).
 ``build_eval_transform`` contains only deterministic operations; the 2024
 scripts evaluated with the training pipeline, including random flips and
-RandAugment, which this module fixes.
+RandAugment; this module keeps the two separate.
 """
 
 from __future__ import annotations

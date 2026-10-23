@@ -1,6 +1,6 @@
 """Zero-shot species classification with CLIP-style encoders.
 
-Design points that address problems in the 2024 notebooks:
+Design points, and how they differ from the 2024 notebooks:
 
 * Species identity (``species_id``) is separate from prompt text. Two species
   with the same common name keep separate ids; their identical prompts produce

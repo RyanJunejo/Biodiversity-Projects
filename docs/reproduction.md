@@ -13,8 +13,8 @@
 | BioCLIP evaluations re-run on real data | **Not done** (needs the datasets and ~600 MB per checkpoint download; a CPU run over 100,000 iNat21 val images is slow) |
 
 A smoke test proves the code path executes; it is **not** a reproduction and its numbers mean
-nothing. A real run of the corrected code is a new experiment (see `docs/changes.md` for what
-differs from 2024) and should be recorded as "newly reproduced" in `results/results_inventory.json`
+nothing. A real run of the current code is a new experiment (see `docs/changes.md` for what
+differs from the 2024 scripts) and should be recorded as "newly reproduced" in `results/results_inventory.json`
 with its own provenance, never as a confirmation of the 2024 values.
 
 ## Environment
@@ -91,7 +91,7 @@ a quick partial check. Each run writes a JSON with the counts, both tie policies
 images, the checkpoint revision and the prompt example, which is what `results/` needs for a
 "newly reproduced" entry.
 
-To match the historical training behaviour as closely as the corrected code allows, set
+To match the historical training behaviour as closely as the current code allows, set
 `drop_path_rate: 0.0` and `mixup_alpha: 1.0` in the config; the validation transform,
 learning-rate schedule and validation loss will still differ (see `docs/changes.md`).
 
@@ -107,7 +107,7 @@ learning-rate schedule and validation loss will still differ (see `docs/changes.
 * Notebooks: `bioclip_inat21_val`, `bioclip_rare_species_prompts`, `inaturalist_tutorial`
   executed without error from a fresh kernel with `BIODIV_SMOKE_TEST=1`.
 * Presentation PDF export: both decks converted with LibreOffice 26.8.1 (headless) and checked
-  page by page against the slide text and media (26 and 28 pages). One defect: on slide 17
+  page by page against the slide text and media (26 and 28 pages). One rendering problem: on slide 17
   ("Battle of the CLIPs") the bar chart's bars do not render and its axis is mis-scaled in the
   PDF; the values (CLIP 0.06, BioCLIP 0.70, OpenCLIP 0.08) are in `results/results.md`. Open the
   `.pptx` for that chart.

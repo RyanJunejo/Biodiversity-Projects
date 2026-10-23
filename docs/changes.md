@@ -1,4 +1,4 @@
-# What changed in the code, and which changes alter experimental behaviour
+# Differences between the 2024 scripts and the current code
 
 The 2024 code is preserved verbatim under `archive/2024-original/`. The replacements under
 `src/biodiv/`, `scripts/` and `notebooks/` were written in October 2026. Every item below was
@@ -8,12 +8,12 @@ CPU with a randomly initialised model (no datasets or pretrained weights were us
 **Historical results keep their original provenance.** Nothing in `results/` was produced by
 the new code. A run of the new code is a *different* experiment and must be reported as such.
 
-Behaviour-changing fixes are marked **[changes results]**; the others only affect robustness,
-portability or clarity.
+Differences that change what a run measures are marked **[changes results]**; the others affect
+only robustness, portability or clarity.
 
 ## Hiera fine-tuning (`inat2019-mfinal-300epochs.py`, `inat2021-mfinal-300.py` -> `src/biodiv/train.py` and friends)
 
-| # | Finding in the 2024 scripts | Status | What the new code does | Effect |
+| # | 2024 scripts | Status | Current code | Effect |
 |---|---|---|---|---|
 | T1 | Validation used `data_transform`, i.e. `RandomHorizontalFlip` + `RandAugment(9, 1)`, in both scripts (`INatDataset(..., transform=data_transform)` for val in 2019; `ImageFolder(val_dir, transform=data_transform)` in 2021). | Confirmed | `transforms.build_eval_transform` (resize, tensor, normalise only) for validation; `build_train_transform` for training. Tested in `tests/test_transforms.py`. | **[changes results]** Historical validation accuracies were measured on randomly augmented validation images; a rerun will measure clean images. |
 | T2 | The 2019 `INatDataset.__init__` set `self.transform = data_transform`, ignoring the `transform` argument. Also `list(self.image_dict.keys())[idx]` rebuilt a 265k-element list on every item. | Confirmed | `inat.INatDataset` stores and applies the transform it is given; records are a list indexed directly. Tested in `tests/test_inat.py`. | No numeric effect in 2024 (the same global was passed anyway); large speed-up. |
@@ -33,7 +33,7 @@ portability or clarity.
 
 ## BioCLIP evaluation notebooks (-> `src/biodiv/clip_eval.py`, `encoders.py`, `species_data.py`, `prompts.py`; `scripts/eval_bioclip.py`; two notebooks)
 
-| # | Finding in the 2024 notebooks | Status | What the new code does | Effect |
+| # | 2024 notebooks | Status | Current code | Effect |
 |---|---|---|---|---|
 | C1 | `BioClip-INAT21-Fixed (2).ipynb`: `#label_emb /= label_emb.norm(dim=-1, keepdim=True)` is commented out for both checkpoints, while image embeddings are normalised. The argmax was therefore over cosine x ‖text‖, biased toward prompts with large text-embedding norms. (The older iNat 2019 and Rare Species notebooks did normalise both.) | Confirmed | `clip_eval.encode_prompts` and `encode_images` both L2-normalise; `cosine_scores` is a plain dot product of unit vectors. Tested with deliberately mis-scaled vectors. | **[changes results]** for B2 (0.6398) and B3 (0.7195); a rerun measures cosine similarity as in the BioCLIP paper. |
 | C2 | Same notebook: the second checkpoint was created as `model, preprocess_train, preprocess_val = ...` but images were encoded with `preprocess` from the first checkpoint. | Confirmed | `OpenClipEncoder` keeps `preprocess_val` of the checkpoint it loaded; evaluation always uses `encoder.preprocess`. | **[may change results]** for B3; both are ViT-B/16 CLIP models and likely share the same preprocessing, but this was not verified. |
@@ -47,13 +47,13 @@ portability or clarity.
 | C10 | Checkpoints were loaded by name (`hf-hub:imageomics/bioclip`) with no revision. | Confirmed | `OpenClipEncoder(repo_id, revision=...)` pins a Hub commit via `snapshot_download` + open_clip's `local-dir:` loader; `configs/bioclip_eval.yaml` records the commits observed on 2026-10-23. | None; reproducibility. |
 | C11 | Rare Species was exported to JSONL and reloaded from the Hugging Face cache paths; the `datasets` revision was not pinned. | Confirmed | `species_data.rare_species_from_hub(revision=...)` (pinned) or `rare_species_from_jsonl` for the old export format. | None. |
 
-## Fixes after the 2026-10-23 review of the new code
+## Changes after the 2026-10-23 review of the current code
 
-A second-pass review of the cleanup found seven defects in the *new* code (none in the
-documentation or historical results). All were reproduced before being fixed; `tests/test_schemas.py`
+A second-pass review identified seven issues in the *current* code (none in the documentation
+or historical results). Each was reproduced before being changed; `tests/test_schemas.py`
 now checks the adapters against real upstream record samples rather than only against fixtures.
 
-| # | Defect in the first cleanup commit | Fix |
+| # | Before | After |
 |---|---|---|
 | R1 | Rare Species Hub loader read an `image` column; the pinned dataset revision names it `file_name` (the 2024 export used `image`). `KeyError` on first use. | `species_data.rare_species_from_dataset` detects either column. |
 | R2 | `SpeciesTable.from_inat_categories` required `specific_epithet`, which iNat 2019's `categories.json` lacks, so the documented iNat 2019 evaluation crashed. | Epithet derived from `name` when absent; common name `None` (common-name prompts raise a clear error instead of emitting "None"). |

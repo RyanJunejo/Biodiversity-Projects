@@ -14,9 +14,9 @@ git show original-2024 --stat          # what the repository looked like on 2024
 git checkout original-2024 -- .        # restore the original layout into the working tree
 ```
 
-Do not treat the code here as correct: `docs/changes.md` lists the defects found in it and
-`docs/claims_audit.md` lists which documented claims it does and does not support. The
-present-day replacements live under `src/`, `scripts/`, `configs/` and `notebooks/`.
+`docs/changes.md` lists where the current code differs from these scripts, and
+`docs/claims_audit.md` lists which documented claims the surviving artifacts do and do not
+support. The present-day code lives under `src/`, `scripts/`, `configs/` and `notebooks/`.
 
 ## Contents and where their replacements live
 

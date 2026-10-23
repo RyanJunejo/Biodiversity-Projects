@@ -9,11 +9,12 @@ zero-shot from nothing more than the species name written into a text prompt. Al
 also looked at how the wording of that prompt, whether a common name, a scientific name, the
 full taxonomy, or some combination, changes what BioCLIP gets right.
 
-In 2026 we went back over everything. We rewrote the training and evaluation code so that it
-runs on any machine and is covered by tests, we checked every claim from the original write-up
-and slides against the notebooks and logs that survived, and we wrote down what held up and
-what did not. We did not re-run the experiments, so every number in this README is the value we
-recorded in 2024, with its caveat beside it. The original scripts, notebooks and presentation
+In 2026 we returned to the project to put it in order. The code in this repository is a clean,
+tested implementation of both experiments, with a configuration file for each dataset and a demo
+that runs in under a minute, and we checked every claim from the original write-up and slides
+against the notebooks and logs that survived. We did not re-run the experiments, so every number
+in this README is the value we recorded in 2024, with the conditions it was measured under
+stated beside it. The original scripts, notebooks and presentation
 are kept under [`archive/2024-original/`](archive/2024-original/) and at the git tag
 `original-2024`.
 
@@ -32,7 +33,7 @@ also uses: AdamW with weight decay 0.05, layer-wise learning-rate decay of 0.65,
 minutes per epoch. We measured top-1 accuracy on the official validation splits after each epoch
 and logged everything to Weights & Biases.
 
-One thing we want to be clear about, because our original write-up got it wrong: Hiera's
+One thing worth being clear about, since the word invites confusion: Hiera's
 "hierarchy" refers to its spatial pyramid of feature maps, which shrink in resolution and grow in
 channels through four stages. It has nothing to do with biological taxonomy. Our classifier was
 a flat softmax over species and never saw the taxonomic tree.
@@ -66,9 +67,10 @@ The two Hiera numbers are approximate. The trained checkpoints were never commit
 only record of those runs is the Weights & Biases report in `results/historical/`, whose charts
 show the 2019 run at about 45 epochs and the 2021 run at about 52 of the 300 we had configured.
 The 2021 run peaked near 0.61 around epoch 30 and had drifted down to about 0.56 by the time the
-report was exported. Both runs also carry two defects we describe in the next section: the
-validation images went through the training augmentations, and stochastic depth was never
-actually applied.
+report was exported. In both runs the validation images went through the training
+augmentations rather than a fixed resize, and stochastic depth was not applied even though it
+was part of the configuration, so these accuracies should be read as indicative rather than
+definitive.
 
 The BioCLIP numbers on iNaturalist are exact, but they are not what they first appear to be.
 TreeOfLife-10M contains the entire iNaturalist 2021 training split, so BioCLIP had seen every
@@ -76,17 +78,17 @@ one of those 10,000 species during pre-training, along with the very taxonomic a
 text we put in the prompts. The 2019 validation species almost certainly overlap too, although
 no mapping between the two competitions exists, so we cannot say how much. These evaluations
 are zero-shot only in the sense that we did not fine-tune anything. The two iNaturalist 2021
-numbers also come from a notebook that forgot to normalise the text embeddings, so the scores
-were not the cosine similarities we intended, and the second checkpoint was run with the first
-checkpoint's preprocessing object. The Rare Species results are the one place where BioCLIP was
+numbers were also computed without normalising the text embeddings, so each score was a cosine
+similarity scaled by the norm of the prompt's embedding rather than a cosine similarity as such,
+and both checkpoints shared a single preprocessing pipeline. The Rare Species results are the one place where BioCLIP was
 genuinely looking at species it had never seen, which is why we think they are the most
 interesting numbers in the project.
 
 The Rare Species results need one more caveat. Only 398 of the 400 species have a distinct
 common name, because two pairs of species share one: *Acropora acuminata* and *A. millepora* are
 both "staghorn coral", and *Tylototriton shanjing* and *T. verrucosus* are both "Yunnan Newt".
-Our common-name notebook built its label list from the unique names, so it silently merged those
-pairs and scored a 398-way task, whereas the taxonomy prompts scored all 400. The gap of almost
+Our common-name evaluation built its label list from the unique names, so those pairs were
+merged and it scored a 398-way task, whereas the taxonomy prompts scored all 400. The gap of almost
 eight points between them is far larger than the merge could explain, so the ordering stands,
 but the numbers are not measured on exactly the same task. The slides from 2024 show three more
 prompt formats on Rare Species, and CLIP and OpenCLIP baselines on iNaturalist 2019, for which
@@ -97,30 +99,22 @@ The full provenance of every number, down to the notebook cell, is in
 [`results/results.md`](results/results.md), and the claim-by-claim check of the 2024 write-up is
 in [`docs/claims_audit.md`](docs/claims_audit.md).
 
-## What we found when we went back over the code
+## The code
 
-Reading the 2024 scripts again two years later was instructive. The most consequential problem
-was one we did not notice at the time: Hiera's classification head applies a softmax whenever
-the model is in evaluation mode, and our validation loop fed those probabilities straight into
-cross-entropy, so every validation loss we logged was simply the logarithm of the number of
-classes and told us nothing. The accuracies were unaffected, because a softmax does not change
-the argmax, which is why the training still looked healthy. We had also written a block of code
-to add stochastic depth to Hiera that matched none of its modules and therefore did nothing, we
-set MixUp and CutMix alpha values that were never passed to the constructors, and we applied the
-training augmentations to the validation images as well. On the BioCLIP side, besides the
-normalisation and preprocessing mistakes above, the notebooks assumed that a prediction index
-equalled a dataset category id, depended on variables defined in other sessions, and could only
-run on a GPU.
+The code under `src/biodiv/` implements both experiments as a small package: loading the
+iNaturalist annotation files through an explicit category map, separate training and evaluation
+transforms, Hiera construction with the fine-tuning schedule described above, checkpoint saving
+and resuming that works on any machine, and a zero-shot evaluator in which species identity is
+kept separate from the text of the prompt, so that two species sharing a common name are scored
+under an explicit tie rule rather than merged. Every external checkpoint is pinned to a specific
+revision. The package is covered by tests that use small synthetic fixtures and samples of the
+real upstream record formats, so they run without the datasets or the model weights.
 
-We have fixed all of this in the new code under `src/biodiv/`, which is covered by tests that
-use small synthetic fixtures and real samples of the upstream record formats, so none of it
-needs the datasets or the model weights to run. Each fix is described in
-[`docs/changes.md`](docs/changes.md), with a note on whether it changes experimental behaviour.
-We have left the 2024 numbers exactly as we measured them rather than quietly replacing them, and
-a run of the corrected code should be reported as a new experiment, not as a confirmation of the
-old ones. How each checkpoint relates to each evaluation set, including what we could confirm
-about data overlap and what remains unknown, is in
-[`docs/evaluation_validity.md`](docs/evaluation_validity.md).
+The current code does not reproduce every detail of the 2024 scripts. The differences that would
+change a measurement are listed in [`docs/changes.md`](docs/changes.md), so a run of the current
+code should be reported as a new experiment rather than as a confirmation of the numbers above.
+How each checkpoint relates to each evaluation set, including what we could confirm about data
+overlap and what remains unknown, is in [`docs/evaluation_validity.md`](docs/evaluation_validity.md).
 
 ## Try it
 
@@ -194,10 +188,7 @@ happens to show the shared-common-name problem in action: *Acropora acuminata* a
 
 ## Where everything is
 
-The shared code lives in `src/biodiv/`: loading the iNaturalist annotation files with an explicit
-category map, separate training and evaluation transforms, Hiera construction, the learning-rate
-schedule, checkpoint saving and resuming, the training loop, the zero-shot evaluator, and
-loading of pinned checkpoints. The command-line entry points are in `scripts/`: `demo.py`,
+The shared code described above lives in `src/biodiv/`. The command-line entry points are in `scripts/`: `demo.py`,
 `train_hiera.py`, `eval_bioclip.py` and `make_results_figure.py`. The training recipes for both
 datasets and the pinned Hugging Face revisions are in `configs/`. The three notebooks in
 `notebooks/` cover the iNaturalist 2021 evaluation, the Rare Species prompt comparison, and a
@@ -228,14 +219,14 @@ locations, the full list of commands, and the status of every check we performed
 
 ## What we learned
 
-Most of what went wrong in 2024 would have been caught by habits we now consider basic. A
-validation loss that sits at the logarithm of the class count should have been a red flag
-instead of a curiosity. A single assertion that the validation transform contains no random
-operations would have caught the augmentation mistake. Saving per-image predictions, rather
-than only an aggregate accuracy, would have let us revisit the 398-versus-400 question without
-re-running anything, and recording package versions and checkpoint revisions would have made
-the numbers reproducible rather than merely recorded. Above all, we learned to ask what a model
-had already seen before calling an evaluation zero-shot.
+Two lessons stayed with us. The first is to ask what a model has already seen before describing
+an evaluation as zero-shot. BioCLIP's strong iNaturalist numbers say less than its Rare Species
+numbers precisely because of what went into its pre-training data, and the question of overlap
+turned out to matter more than any choice of prompt. The second is that the small bookkeeping
+decisions are what make a result possible to revisit two years later: keeping species identity
+separate from the text of a prompt, saving per-image predictions rather than only an aggregate
+accuracy, and pinning the exact checkpoint revision and package versions. The code in this
+repository does all three.
 
 ## Acknowledgements and references
 

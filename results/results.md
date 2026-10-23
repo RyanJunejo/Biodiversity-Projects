@@ -10,8 +10,8 @@ The machine-readable version is `results/results_inventory.json`. "Status" value
 * **slide only, unverified**: appears on a slide with no notebook, log or run artifact.
 * **newly reproduced**: none. No experiment was re-run; see `docs/reproduction.md` for how to.
 
-Datasets and checkpoints are described in `docs/evaluation_validity.md`; defects in the code
-that produced the historical numbers are described in `docs/changes.md`.
+Datasets and checkpoints are described in `docs/evaluation_validity.md`; where the current code
+differs from the scripts that produced the historical numbers is described in `docs/changes.md`.
 
 ## Hiera-tiny fine-tuning (supervised)
 
