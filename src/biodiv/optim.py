@@ -70,5 +70,8 @@ def warmup_cosine_factor(epoch: int, warmup_epochs: int, total_epochs: int) -> f
     return 0.5 * (1.0 + math.cos(math.pi * progress))
 
 
-def build_scheduler(optimizer: torch.optim.Optimizer, warmup_epochs: int, total_epochs: int) -> LambdaLR:
-    return LambdaLR(optimizer, lambda e: warmup_cosine_factor(e, warmup_epochs, total_epochs))
+def build_scheduler(optimizer: torch.optim.Optimizer, warmup_epochs: int, total_epochs: int, last_epoch: int = -1) -> LambdaLR:
+    """Per-epoch LambdaLR. Pass ``last_epoch=start_epoch - 1`` when resuming so
+    the groups' ``lr`` is recomputed for ``start_epoch`` from the *current*
+    config (every group must carry ``initial_lr``)."""
+    return LambdaLR(optimizer, lambda e: warmup_cosine_factor(e, warmup_epochs, total_epochs), last_epoch=last_epoch)

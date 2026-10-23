@@ -54,12 +54,24 @@ class SpeciesTable:
 
     @classmethod
     def from_inat_categories(cls, categories: Sequence[dict]) -> "SpeciesTable":
-        """iNat21 ``categories`` entries -> table ordered by category id."""
+        """iNaturalist ``categories`` entries -> table ordered by category id.
+
+        Works with both competition formats. iNat 2021 entries carry
+        ``specific_epithet`` and ``common_name``; iNat 2019 entries (from the
+        separate ``categories.json``) have only the six ranks and ``name``
+        (``"Genus epithet"``), so the epithet is taken from ``name`` and the
+        common name is ``None`` (common-name prompts then raise).
+        """
         rows = []
         for i, c in enumerate(sorted(categories, key=lambda c: int(c["id"]))):
-            taxonomy = {r: c[r] for r in RANKS[:-1]}
-            taxonomy["species"] = c["specific_epithet"]
-            rows.append(Species(i, c["name"], c.get("common_name"), taxonomy, int(c["id"])))
+            name = str(c["name"])
+            taxonomy = {r: c.get(r) for r in RANKS[:-1]}
+            epithet = c.get("specific_epithet")
+            if epithet is None:
+                parts = name.split()
+                epithet = " ".join(parts[1:]) if len(parts) > 1 else ""
+            taxonomy["species"] = epithet
+            rows.append(Species(i, name, c.get("common_name"), taxonomy, int(c["id"])))
         return cls(rows)
 
     @classmethod
@@ -103,7 +115,11 @@ def duplicate_prompt_groups(prompts: Sequence[str]) -> dict[str, list[int]]:
 
 
 class ImageRecords(Dataset):
-    """``records`` are ``(source, species_id)``; source is a path or a PIL image."""
+    """``records`` are ``(source, species_id)``.
+
+    ``source`` is a path, a PIL image, or a zero-argument callable returning a
+    PIL image (used for lazily decoded Hub datasets).
+    """
 
     def __init__(self, records: Sequence[tuple], preprocess: Callable, root: str | Path | None = None):
         self.records = list(records)
@@ -116,6 +132,8 @@ class ImageRecords(Dataset):
     def __getitem__(self, idx: int):
         source, label = self.records[idx]
         try:
+            if callable(source):
+                source = source()
             if isinstance(source, Image.Image):
                 image = source
             else:

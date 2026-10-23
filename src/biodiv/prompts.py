@@ -26,6 +26,10 @@ def make_prompt(species, style: str, prefix: str = "") -> str:
     taxonomy = get("taxonomy") or {r: get(r) for r in RANKS}
     scientific = get("scientific") or f"{taxonomy['genus']} {taxonomy['species']}"
     common = get("common")
+    if style in ("taxonomic", "taxonomic_common"):
+        missing = [r for r in RANKS if taxonomy.get(r) in (None, "")]
+        if missing:
+            raise ValueError(f"species {scientific!r} lacks taxonomy ranks {missing} needed for style {style!r}")
     taxonomic = " ".join(str(taxonomy[r]) for r in RANKS)
 
     if style == "common":

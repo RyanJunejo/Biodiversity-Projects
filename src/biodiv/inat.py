@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -51,8 +52,9 @@ class CategoryMap:
     def num_classes(self) -> int:
         return len(self.category_ids)
 
-    @property
+    @cached_property
     def _id_to_index(self) -> dict[int, int]:
+        # built once per instance (cached_property writes to __dict__, which a frozen dataclass allows)
         return {cid: i for i, cid in enumerate(self.category_ids)}
 
     def to_index(self, category_id: int) -> int:

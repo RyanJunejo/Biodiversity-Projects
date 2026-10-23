@@ -14,7 +14,7 @@ Examples
     # any Hub checkpoint, optionally pinned
     python scripts/eval_bioclip.py --dataset rare-species --checkpoint imageomics/bioclip@<commit>
 
-    # smoke test on the synthetic fixture with a weight-free encoder
+    # smoke test on the synthetic fixture with a weight-free encoder (works after `pip install -e .`)
     python scripts/eval_bioclip.py --dataset fixture --checkpoint lookup --prompt-style common
 """
 
@@ -30,26 +30,18 @@ from biodiv.clip_eval import evaluate_zero_shot
 from biodiv.encoders import KNOWN_CHECKPOINTS, OpenClipEncoder
 from biodiv.paths import get_paths, resolve
 from biodiv.prompts import PROMPT_STYLES
-from biodiv.species_data import inat21_val, rare_species_from_hub, rare_species_from_jsonl
+from biodiv.species_data import inat_split, rare_species_from_hub, rare_species_from_jsonl
 
 
 def load_dataset(name: str, cfg: dict, paths):
     if name == "fixture":
-        from tests.fixtures.make_fixture import load_fixture_rare_species
+        from biodiv.fixtures import load_fixture_rare_species
 
         return load_fixture_rare_species()
     if name in ("inat21-val", "inat2019-val"):
         d = cfg["datasets"][name]
-        from biodiv.inat import load_json
-
-        val_json = resolve(d["val_json"], paths.data_root)
-        if d.get("categories_json"):  # iNat2019: real names live in a separate file
-            data = load_json(val_json)
-            data["categories"] = load_json(resolve(d["categories_json"], paths.data_root))
-            tmp = val_json.parent / (val_json.stem + ".with_names.json")
-            tmp.write_text(json.dumps(data))
-            val_json = tmp
-        return inat21_val(val_json, resolve(d["image_root"], paths.data_root))
+        categories = resolve(d["categories_json"], paths.data_root) if d.get("categories_json") else None  # iNat 2019 names
+        return inat_split(resolve(d["val_json"], paths.data_root), resolve(d["image_root"], paths.data_root), categories)
     if name == "rare-species":
         d = cfg["datasets"][name]
         if d.get("source", "hub") == "hub":
@@ -60,7 +52,7 @@ def load_dataset(name: str, cfg: dict, paths):
 
 def load_encoder(spec: str, cfg: dict, paths, device: str | None):
     if spec == "lookup":  # weight-free stand-in with predictable geometry for the fixture dataset
-        from tests.fixtures.make_fixture import fixture_encoder
+        from biodiv.fixtures import fixture_encoder
 
         return fixture_encoder()
     if spec in cfg.get("checkpoints", {}):

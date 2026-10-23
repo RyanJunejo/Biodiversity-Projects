@@ -49,14 +49,14 @@ top-1 accuracy was measured. No deduplication or image filtering was performed.
 
 | | |
 |---|---|
-| `src/biodiv/` | Shared Python code: iNaturalist loading with explicit category maps, train vs. eval transforms, Hiera construction, layer-wise LR + warmup/cosine schedule, checkpoint resume, training loop, BioCLIP zero-shot evaluation with explicit species identity and tie handling, pinned checkpoint loading |
+| `src/biodiv/` | Shared Python code (plus `fixtures.py`, the synthetic data used by tests and smoke runs): iNaturalist loading with explicit category maps, train vs. eval transforms, Hiera construction, layer-wise LR + warmup/cosine schedule, checkpoint resume, training loop, BioCLIP zero-shot evaluation with explicit species identity and tie handling, pinned checkpoint loading |
 | `scripts/` | `train_hiera.py --config ...` and `eval_bioclip.py --dataset ... --checkpoint ... --prompt-style ...` |
 | `configs/` | `hiera_inat2019.yaml`, `hiera_inat2021_mini.yaml`, `bioclip_eval.yaml` (pinned Hub revisions, dataset paths) |
 | `notebooks/` | Reader-facing, output-free: `bioclip_inat21_val.ipynb`, `bioclip_rare_species_prompts.ipynb`, `inaturalist_tutorial.ipynb`. Old-name to new-name map: `docs/notebook_index.md` |
 | `results/` | `results.md`, `results_inventory.json`, `historical/` (W&B report PDF) |
 | `docs/` | `claims_audit.md` (every 2024 claim checked), `evaluation_validity.md` (what each checkpoint had seen), `changes.md` (code fixes and which change behaviour), `reproduction.md`, `environment.md`, `licensing.md`, `presentations/` (both decks as `.pptx` and PDF) |
 | `archive/2024-original/` | Verbatim 2024 scripts, notebooks (with outputs) and README; see its README |
-| `tests/` | 25 CPU tests on synthetic fixtures; `.github/workflows/ci.yml` runs them plus the notebooks in smoke mode |
+| `tests/` | 33 CPU tests on synthetic fixtures and real upstream record samples; `.github/workflows/ci.yml` runs them plus the notebooks in smoke mode |
 
 The presentation is `docs/presentations/Advancing_Biodiversity_Conservation_Species_Classification.pdf`
 (26 slides; the slide-17 bar chart does not render in the PDF export, open the `.pptx`).
@@ -85,8 +85,8 @@ The presentation is `docs/presentations/Advancing_Biodiversity_Conservation_Spec
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # or a CUDA build
 pip install -e ".[dev]"
-pytest -q                                                   # 25 tests, synthetic fixtures, ~15 s
-python tests/fixtures/make_fixture.py && python scripts/train_hiera.py --config tests/fixtures/hiera_smoke.yaml --data-root tests/fixtures/data
+pytest -q                                                   # 33 tests, no downloads, ~30 s
+python -m biodiv.fixtures tests/fixtures/data && python scripts/train_hiera.py --config tests/fixtures/hiera_smoke.yaml --data-root tests/fixtures/data
 python scripts/eval_bioclip.py --dataset fixture --checkpoint lookup --prompt-style common --prefix "a photo of "
 ```
 

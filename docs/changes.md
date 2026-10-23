@@ -47,8 +47,24 @@ portability or clarity.
 | C10 | Checkpoints were loaded by name (`hf-hub:imageomics/bioclip`) with no revision. | Confirmed | `OpenClipEncoder(repo_id, revision=...)` pins a Hub commit via `snapshot_download` + open_clip's `local-dir:` loader; `configs/bioclip_eval.yaml` records the commits observed on 2026-10-23. | None; reproducibility. |
 | C11 | Rare Species was exported to JSONL and reloaded from the Hugging Face cache paths; the `datasets` revision was not pinned. | Confirmed | `species_data.rare_species_from_hub(revision=...)` (pinned) or `rare_species_from_jsonl` for the old export format. | None. |
 
+## Fixes after the 2026-10-23 review of the new code
+
+A second-pass review of the cleanup found seven defects in the *new* code (none in the
+documentation or historical results). All were reproduced before being fixed; `tests/test_schemas.py`
+now checks the adapters against real upstream record samples rather than only against fixtures.
+
+| # | Defect in the first cleanup commit | Fix |
+|---|---|---|
+| R1 | Rare Species Hub loader read an `image` column; the pinned dataset revision names it `file_name` (the 2024 export used `image`). `KeyError` on first use. | `species_data.rare_species_from_dataset` detects either column. |
+| R2 | `SpeciesTable.from_inat_categories` required `specific_epithet`, which iNat 2019's `categories.json` lacks, so the documented iNat 2019 evaluation crashed. | Epithet derived from `name` when absent; common name `None` (common-name prompts raise a clear error instead of emitting "None"). |
+| R3 | Resuming restored the optimiser's checkpointed learning rate, so extending a *finished* run trained its added epochs at lr 0.0 (reproduced: 0 of 157 tensors changed). | The learning rate is recomputed from the current config for the resumed epoch (`build_scheduler(..., last_epoch=start_epoch - 1)`); only model, optimiser moments and scaler come from the checkpoint. Test asserts lr > 0 and weight change. |
+| R4 | `CategoryMap._id_to_index` was rebuilt on every lookup (7 s per 10,000 lookups with 10,000 classes; minutes for iNat21 train_mini). | Cached once per instance. |
+| R5 | `scripts/eval_bioclip.py --dataset fixture` imported `tests.fixtures`, which is only importable under pytest; the documented quick-start command failed after `pip install -e .`. | Fixtures moved into the package (`biodiv.fixtures`, `python -m biodiv.fixtures DIR`); a subprocess test runs the command with only the package on the path. |
+| R6 | The iNat 2019 path wrote a merged annotation file next to the dataset, which fails on the read-only cluster mount. | `inat_split(..., categories_json=...)` merges in memory; test asserts the dataset directory is untouched. |
+| R7 | The Hub loader materialised all 11,983 decoded images in memory before evaluating. | Images are decoded lazily per record (`ImageRecords` accepts zero-argument callables). |
+
 ## Verification status
 
-* All 25 tests in `tests/` pass on CPU (Python 3.11, torch 2.14.1+cpu); see `docs/reproduction.md`.
+* All 33 tests in `tests/` pass on CPU (Python 3.11, torch 2.14.1+cpu); see `docs/reproduction.md`.
 * `scripts/train_hiera.py` and `scripts/eval_bioclip.py` were smoke-tested on synthetic fixtures.
 * **No experiment was re-run on real data.** All numbers in `results/` are the 2024 values.

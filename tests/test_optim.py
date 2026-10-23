@@ -48,3 +48,18 @@ def test_scheduler_drives_group_lrs():
         opt.step()
         sched.step()
     assert math.isclose(seen[0], 5e-3) and math.isclose(seen[1], 1e-2) and math.isclose(seen[2], 1e-2) and math.isclose(seen[3], 5e-3)
+
+
+def test_scheduler_resumes_at_a_given_epoch_from_initial_lr():
+    m = FakeHiera(2)
+    opt = torch.optim.AdamW(layerwise_lr_param_groups(m, 1e-2, 0.5, 0.0))
+    for g in opt.param_groups:
+        g["lr"] = 0.0  # what a checkpoint of a finished run would restore
+        g["initial_lr"] = g["lr"] if False else None
+    base = [1e-2 * 0.5 ** (3 - g["layer_id"]) for g in opt.param_groups]
+    for g, b in zip(opt.param_groups, base):
+        g["initial_lr"] = b
+    build_scheduler(opt, warmup_epochs=2, total_epochs=6, last_epoch=2)  # about to run epoch 3
+    expected = warmup_cosine_factor(3, 2, 6)
+    assert all(math.isclose(g["lr"], b * expected) for g, b in zip(opt.param_groups, base))
+    assert expected > 0

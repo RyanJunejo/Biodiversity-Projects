@@ -10,6 +10,7 @@ Examples
     python scripts/train_hiera.py --config configs/hiera_inat2019.yaml --resume auto
 
     # smoke test on the synthetic fixture (CPU, seconds)
+    python -m biodiv.fixtures tests/fixtures/data
     python scripts/train_hiera.py --config tests/fixtures/hiera_smoke.yaml --data-root tests/fixtures/data
 """
 

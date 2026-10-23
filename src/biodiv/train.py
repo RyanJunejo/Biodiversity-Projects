@@ -161,7 +161,7 @@ def run_training(cfg: TrainConfig, paths: Paths | None = None, log: Callable[[st
 
     model = build_hiera(num_classes, cfg.model_name, cfg.model_checkpoint, cfg.drop_path_rate, cfg.pretrained).to(device)
     optimizer = torch.optim.AdamW(layerwise_lr_param_groups(model, cfg.base_lr, cfg.layer_decay, cfg.weight_decay), betas=cfg.betas)
-    scheduler = build_scheduler(optimizer, cfg.warmup_epochs, cfg.epochs)
+    base_lrs = [g["lr"] for g in optimizer.param_groups]
     scaler = torch.amp.GradScaler(enabled=cfg.amp and device.type == "cuda")
     criterion = nn.CrossEntropyLoss(label_smoothing=cfg.label_smoothing)
     mix = v2.RandomChoice([v2.CutMix(alpha=cfg.cutmix_alpha, num_classes=num_classes), v2.MixUp(alpha=cfg.mixup_alpha, num_classes=num_classes)])
@@ -169,9 +169,15 @@ def run_training(cfg: TrainConfig, paths: Paths | None = None, log: Callable[[st
     start_epoch = 0
     resume_path = ckpt.find_latest(ckpt_dir) if cfg.resume == "auto" else (Path(cfg.resume) if cfg.resume else None)
     if resume_path is not None and Path(resume_path).exists():
-        meta = ckpt.load_checkpoint(resume_path, model, optimizer, scheduler, scaler, map_location=str(device))
+        # Model, optimiser moments and scaler come from the checkpoint. The learning rate does not:
+        # it is a pure function of (epoch, config), so it is recomputed below for start_epoch. This
+        # matters when a finished run is extended (the checkpointed lr would be the old schedule's 0).
+        meta = ckpt.load_checkpoint(resume_path, model, optimizer, scaler=scaler, map_location=str(device))
         start_epoch = meta["epoch"] + 1
         log(f"resumed from {resume_path} (completed epoch {meta['epoch']}), starting at epoch {start_epoch}")
+    for group, base in zip(optimizer.param_groups, base_lrs):
+        group["initial_lr"] = base
+    scheduler = build_scheduler(optimizer, cfg.warmup_epochs, cfg.epochs, last_epoch=start_epoch - 1)
 
     wandb_run = None
     if cfg.wandb.get("enabled"):

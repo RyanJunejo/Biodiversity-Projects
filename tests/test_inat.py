@@ -5,8 +5,8 @@ import pytest
 import torch
 from PIL import Image
 
+from biodiv.fixtures import INAT_CATEGORIES
 from biodiv.inat import CategoryMap, INatDataset, build_records, load_json, load_split
-from tests.fixtures.make_fixture import INAT_CATEGORIES
 
 
 def test_category_map_handles_shuffled_noncontiguous_ids(inat_fixture):
@@ -69,3 +69,9 @@ def test_dataset_uses_the_transform_it_was_given(inat_fixture):
     assert label == records[0][1]
     raw, _ = INatDataset(records, inat_fixture["image_root"], transform=None)[0]
     assert isinstance(raw, Image.Image)
+
+
+def test_category_lookup_map_is_built_once():
+    cmap = CategoryMap.from_categories([{"id": i, "name": str(i)} for i in range(1000)])
+    assert cmap._id_to_index is cmap._id_to_index  # cached, not rebuilt per lookup
+    assert cmap.to_index(999) == 999

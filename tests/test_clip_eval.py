@@ -5,9 +5,9 @@ import math
 import torch
 
 from biodiv.clip_eval import ImageRecords, cosine_scores, duplicate_prompt_groups, encode_images, encode_prompts, evaluate_zero_shot
+from biodiv.fixtures import fixture_encoder, load_fixture_rare_species
 from biodiv.metrics import accuracy, top1_correct, topk_accuracy
-from biodiv.species_data import inat21_val
-from tests.fixtures.make_fixture import fixture_encoder, load_fixture_rare_species
+from biodiv.species_data import inat_split
 
 
 def test_duplicate_common_names_do_not_merge_species():
@@ -95,7 +95,7 @@ def test_inat21_labels_use_explicit_category_mapping(tmp_path):
             "categories": categories}
     p = tmp_path / "val.json"
     p.write_text(__import__("json").dumps(data))
-    records, table = inat21_val(p, "/root")
+    records, table = inat_split(p, "/root")
     assert [s.scientific for s in table] == ["Lumbricus terrestris", "Pica hudsonia"]  # ordered by id
     assert records == [("/root/val/b.jpg", 1), ("/root/val/a.jpg", 0)]
     assert table.prompts("taxonomic_common")[1] == \

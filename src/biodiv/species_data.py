@@ -22,10 +22,16 @@ RARE_SPECIES_REPO = "imageomics/rare-species"
 RARE_SPECIES_REVISION = "7e984e1f68ab70170e7913286ad1ff1a0e5ac370"  # Hub commit observed 2026-10-23
 
 
-def inat21_val(val_json: str | Path, image_root: str | Path | None = None):
-    """``(records, table)`` for an iNat21 split file; records are ``(file_name, species_id)``."""
-    data = load_json(val_json)
-    table = SpeciesTable.from_inat_categories(data["categories"])
+def inat_split(json_path: str | Path, image_root: str | Path | None = None, categories_json: str | Path | None = None):
+    """``(records, table)`` for an iNaturalist split file; records are ``(file_name, species_id)``.
+
+    ``categories_json`` replaces the ``categories`` list in memory (iNat 2019
+    ships obfuscated names in the split files and real names separately).
+    Nothing is written next to the dataset.
+    """
+    data = load_json(json_path)
+    categories = load_json(categories_json) if categories_json else data["categories"]
+    table = SpeciesTable.from_inat_categories(categories)
     images = {img["id"]: img["file_name"] for img in data["images"]}
     records = []
     for ann in data["annotations"]:
@@ -34,6 +40,9 @@ def inat21_val(val_json: str | Path, image_root: str | Path | None = None):
             file_name = str(Path(image_root) / file_name)
         records.append((file_name, table.species_id_for(int(ann["category_id"]))))
     return records, table
+
+
+inat21_val = inat_split  # backwards-compatible name
 
 
 def rare_species_from_rows(rows: list[dict], image_key: str = "image"):
@@ -56,10 +65,41 @@ def rare_species_from_jsonl(path: str | Path):
     return rare_species_from_rows(rows)
 
 
+RARE_SPECIES_IMAGE_COLUMNS = ("file_name", "image")  # Hub revisions from 2025 on use ``file_name``; the 2024 export used ``image``
+
+
+def rare_species_from_dataset(ds):
+    """``(records, table)`` from a ``datasets.Dataset``-like object.
+
+    Only the metadata columns are read up front; each image is decoded lazily
+    when the evaluation loop reaches it (``ImageRecords`` accepts callables),
+    so the 11,983 images are never all held in memory at once.
+    """
+    image_key = next((c for c in RARE_SPECIES_IMAGE_COLUMNS if c in ds.column_names), None)
+    if image_key is None:
+        raise KeyError(f"no image column among {RARE_SPECIES_IMAGE_COLUMNS}; columns are {list(ds.column_names)}")
+    metadata = ds.remove_columns([image_key])
+    rows = []
+    for i, meta in enumerate(metadata):
+        row = dict(meta)
+        row["image"] = _LazyImage(ds, i, image_key)
+        rows.append(row)
+    return rare_species_from_rows(rows, image_key="image")
+
+
+class _LazyImage:
+    """Zero-argument callable that decodes one dataset image on demand (picklable for DataLoader workers)."""
+
+    def __init__(self, ds, index: int, column: str):
+        self.ds, self.index, self.column = ds, index, column
+
+    def __call__(self):
+        return self.ds[self.index][self.column]
+
+
 def rare_species_from_hub(cache_dir: str | None = None, revision: str | None = RARE_SPECIES_REVISION, split: str = "train"):
-    """Load from the Hub with ``datasets`` (optional dependency); images are PIL objects."""
+    """Load from the Hub with ``datasets`` (optional dependency: ``pip install -e ".[hub]"``)."""
     from datasets import load_dataset
 
     ds = load_dataset(RARE_SPECIES_REPO, split=split, cache_dir=cache_dir, revision=revision)
-    rows = [dict(r) for r in ds]
-    return rare_species_from_rows(rows, image_key="image")
+    return rare_species_from_dataset(ds)

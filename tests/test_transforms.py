@@ -3,8 +3,8 @@
 import torch
 from torchvision import transforms
 
+from biodiv.fixtures import make_image
 from biodiv.transforms import build_eval_transform, build_train_transform
-from tests.fixtures.make_fixture import make_image
 
 
 def test_eval_transform_is_deterministic_and_never_flips():

@@ -1,4 +1,7 @@
-"""Tiny synthetic fixtures: no real images, no downloads, no model weights.
+"""Tiny synthetic fixtures for tests and smoke runs: no real images, no
+downloads, no model weights. They live in the package (not under ``tests/``)
+so that ``scripts/eval_bioclip.py --dataset fixture`` and the notebooks' smoke
+mode work after a plain ``pip install``.
 
 ``make_inat_fixture`` writes an iNaturalist-style split (images + JSON) with
 deliberately shuffled, non-contiguous category ids.
@@ -6,10 +9,11 @@ deliberately shuffled, non-contiguous category ids.
 ``load_fixture_rare_species`` returns in-memory records and a species table
 with four species, two of which share a common name, mirroring the real
 Rare Species collisions. ``fixture_encoder`` returns a ``LookupEncoder`` whose
-image embeddings are mean colours and whose text embeddings map prompts back
-to species colours, so predictions are fully predictable.
+image embeddings are one-hot species vectors and whose text embeddings map
+prompts back to those vectors, so predictions are fully predictable.
 
-Run as a script to materialise the iNat fixture under tests/fixtures/data.
+``python -m biodiv.fixtures [DIR]`` materialises the iNat fixture (default
+``tests/fixtures/data``).
 """
 
 from __future__ import annotations
@@ -78,7 +82,7 @@ RARE_SPECIES_ROWS = [
 
 
 def load_fixture_rare_species(images_per_species: int = 3):
-    from biodiv.species_data import rare_species_from_rows
+    from .species_data import rare_species_from_rows
 
     rows = []
     for r in RARE_SPECIES_ROWS:
@@ -95,7 +99,7 @@ def fixture_encoder(dim: int = 8):
     vectors of every species named in the prompt, so a prompt shared by two
     species sits exactly between them and produces an exact score tie.
     """
-    from biodiv.encoders import LookupEncoder
+    from .encoders import LookupEncoder
 
     colours = torch.tensor([r["colour"] for r in RARE_SPECIES_ROWS], dtype=torch.float32) / 255.0
     one_hot = torch.eye(dim)[: len(RARE_SPECIES_ROWS)]
@@ -118,6 +122,8 @@ def fixture_encoder(dim: int = 8):
 
 
 if __name__ == "__main__":
-    out = Path(__file__).parent / "data"
+    import sys
+
+    out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("tests/fixtures/data")
     paths = make_inat_fixture(out)
     print({k: str(v) for k, v in paths.items()})

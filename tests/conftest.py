@@ -1,6 +1,6 @@
 import pytest
 
-from tests.fixtures.make_fixture import make_inat_fixture
+from biodiv.fixtures import make_inat_fixture
 
 
 @pytest.fixture

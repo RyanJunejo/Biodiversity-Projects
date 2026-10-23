@@ -4,7 +4,7 @@
 
 | What | Status |
 |---|---|
-| Unit / failure-mode tests (`pytest`) | **Pass** (25 tests, CPU, ~15 s) |
+| Unit / failure-mode tests (`pytest`) | **Pass** (33 tests, CPU, ~30 s; includes adapters checked against real upstream record samples) |
 | Hiera training loop smoke test (synthetic 3-class fixture, random init, 2 epochs + resume, CPU) | **Pass** (~10 s) |
 | BioCLIP evaluation smoke test (synthetic 4-species fixture, weight-free encoder) | **Pass** |
 | Cleaned notebooks executed from a fresh kernel in smoke mode | **Pass** (all three, `jupyter nbconvert --execute`) |
@@ -55,7 +55,7 @@ Vector cluster the 2024 runs used `/datasets/inat_comp/<year>/` (set `BIODIV_DAT
 ## Smoke tests (no data, no weights, CPU)
 
 ```bash
-python tests/fixtures/make_fixture.py                                   # writes tests/fixtures/data (git-ignored)
+python -m biodiv.fixtures tests/fixtures/data                          # writes the synthetic iNat fixture (git-ignored)
 python scripts/train_hiera.py --config tests/fixtures/hiera_smoke.yaml --data-root tests/fixtures/data
 python scripts/eval_bioclip.py --dataset fixture --checkpoint lookup --prompt-style common --prefix "a photo of "
 cd notebooks && BIODIV_SMOKE_TEST=1 jupyter nbconvert --to notebook --execute --output-dir /tmp/nb *.ipynb
@@ -88,7 +88,7 @@ learning-rate schedule and validation loss will still differ (see `docs/changes.
 
 ## Record of the checks performed on 2026-10-23
 
-* `pytest -q`: 25 passed in ~11 s (Python 3.11.17, torch 2.14.1+cpu, 8-core sandbox).
+* `pytest -q`: 33 passed (Python 3.11.17, torch 2.14.1+cpu, 8-core sandbox); 25 in the first pass, 8 added after the review described in `docs/changes.md`.
 * `scripts/train_hiera.py` smoke config: 2 epochs on 6 synthetic images, checkpoints
   `epoch_0000.pt`, `epoch_0001.pt`, `last.pt`, `history.jsonl`, `final_model.pt` written; the
   resume path was exercised by the test suite (third epoch resumed from `epoch_0001.pt`).
