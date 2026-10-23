@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch and the package
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check src scripts tests
+      - name: Unit and smoke tests (synthetic fixtures, no downloads)
+        run: pytest -q
+      - name: Notebooks run from a fresh kernel in smoke mode
+        env:
+          BIODIV_SMOKE_TEST: "1"
+          BIODIV_OUTPUT_DIR: ${{ runner.temp }}/nb_out
+          MPLBACKEND: Agg
+        run: |
+          cd notebooks
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 \
+            --output-dir ${{ runner.temp }}/nb_exec \
+            bioclip_inat21_val.ipynb bioclip_rare_species_prompts.ipynb inaturalist_tutorial.ipynb
