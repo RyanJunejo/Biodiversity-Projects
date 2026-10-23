@@ -1,110 +1,165 @@
-# Species classification with Hiera and BioCLIP (Vector Institute, summer 2024)
+# Species classification with Hiera and BioCLIP
 
-Code, notebooks, slides and recorded results from Ryan Junejo's research internship at the
-Vector Institute (Toronto) in summer 2024, supervised by Graham Taylor and mentored by Nate
-Lesperance. The work fine-tuned a Hiera vision transformer on the iNaturalist 2019 and 2021
-competition datasets and measured BioCLIP's zero-shot species classification on iNaturalist and
-on the Rare Species benchmark, with attention to how the text prompt is written.
+Research-internship project at the Vector Institute (Toronto), summer 2024, supervised by
+Graham Taylor. Two questions: how accurately can a Hiera vision transformer be fine-tuned to
+recognise species on the iNaturalist 2019 and 2021 competition datasets, and how well does
+BioCLIP classify species zero-shot on iNaturalist and on the Rare Species benchmark, depending
+on how the species names are written into the prompt.
 
-In October 2026 the repository was reorganised and audited. The original 2024 files are kept
-unchanged under [`archive/2024-original/`](archive/2024-original/) and at the git tag
-`original-2024`; everything else is new. **No experiment was re-run**: all numbers quoted here
-are the 2024 values, with their provenance and known defects stated.
+The repository was revised in 2026: the training and evaluation code was rewritten, tested and
+made runnable on any machine, every 2024 claim was checked against the surviving artifacts, and
+the results below carry their caveats inline. **No experiment was re-run; the numbers are the
+2024 values.** The original files are kept under [`archive/2024-original/`](archive/2024-original/)
+and at the git tag `original-2024`.
 
-## Research questions
+![Top-1 accuracy as recorded in 2024](docs/figures/results_top1.png)
 
-1. How accurately can Hiera-tiny (self-supervised MAE pre-training on ImageNet-1k) be fine-tuned
-   to classify species on iNaturalist 2019 (1,010 species) and iNaturalist 2021 "mini"
-   (10,000 species)?
-2. How well does BioCLIP classify species zero-shot (no fine-tuning) on the iNaturalist 2019 and
-   2021 validation splits and on the Rare Species dataset, and which text format for the class
-   names works best (common name, scientific name, full taxonomy, combinations, with or without a
-   leading "a photo of")?
-3. (Context, not pursued in code here) How would these compare with the image-captioning plus
-   retrieval-augmented-generation pipeline Nate Lesperance presented in April 2024?
+## Results
 
-Note on Hiera: its "hierarchy" is spatial (the network pools tokens through four stages of
-decreasing resolution). It has nothing to do with biological taxonomy, and the fine-tuning here
-is a flat softmax over species. The 2024 README suggested otherwise; that was wrong.
-
-## What was completed
-
-| Experiment | Recorded result (2024) | Evidence | Caveats |
+| Experiment | Top-1 | Evidence | Caveat |
 |---|---|---|---|
-| Hiera-tiny fine-tuned on iNat 2019 train, evaluated on val (3,030 images) | top-1 about 0.67-0.69 | W&B report chart (`results/historical/`), slide 13 | ~45 of 300 configured epochs logged; validation images were randomly augmented; drop path was 0.0 not 0.1; no checkpoint survives |
-| Hiera-tiny fine-tuned on iNat 2021 train_mini, evaluated on val (100,000 images) | top-1 peak about 0.61 | W&B report chart, slide 14 | ~52 epochs logged; same caveats |
-| BioCLIP zero-shot, iNat 2019 val, prompt "a photo of a {scientific name}" | 0.7063 | archived notebook output | all 1,010 species are probably in BioCLIP's pre-training data |
-| BioCLIP zero-shot, iNat 2021 val, prompt "{taxonomy} with common name {common}" | 0.6398 | archived notebook output | text embeddings not normalised; all 10,000 species are in BioCLIP's pre-training data |
-| BioCLIP iNat21-only checkpoint, same setting | 0.7195 | archived notebook output | as above, plus wrong preprocessing object |
-| BioCLIP zero-shot, Rare Species, common names | 0.2944 | archived notebook output | 398-way task (two shared common names) |
-| BioCLIP zero-shot, Rare Species, taxonomy + common name, with / without "a photo of" | 0.3717 / 0.3739 | archived notebook outputs | 400-way; only genuinely unseen-species evaluation in the project |
+| Hiera-tiny (MAE on ImageNet-1k) fine-tuned on iNat 2019 train, evaluated on val (3,030 images, 1,010 species) | 0.67-0.69 | W&B chart | ~45 of 300 configured epochs logged; validation images were randomly augmented; drop path was 0.0 not 0.1; no checkpoint survives |
+| Hiera-tiny fine-tuned on iNat 2021 train_mini, evaluated on val (100,000 images, 10,000 species) | ~0.61 | W&B chart | ~52 epochs logged; same caveats |
+| BioCLIP zero-shot, iNat 2019 val, prompt "a photo of a {scientific name}" | 0.706 | notebook output | most of these species are in BioCLIP's pre-training data |
+| BioCLIP zero-shot, iNat 2021 val, prompt "{taxonomy} with common name {common}" | 0.640 | notebook output | text embeddings were not normalised; every species is in BioCLIP's pre-training data |
+| BioCLIP (iNat21-only checkpoint), same setting | 0.720 | notebook output | as above, plus preprocessing taken from the other checkpoint |
+| BioCLIP zero-shot, Rare Species (11,983 images, 400 species), common names | 0.294 | notebook output | 398-way: two shared common names merged four species |
+| BioCLIP zero-shot, Rare Species, taxonomy + common name, with / without "a photo of" | 0.372 / 0.374 | notebook output | 400-way; the only unseen-species evaluation in the project |
 
-Full table with sources and issues: [`results/results.md`](results/results.md); machine-readable:
-[`results/results_inventory.json`](results/results_inventory.json). Three further prompt variants
-and two CLIP/OpenCLIP baselines appear on slides only and have no artifact. The "precision-recall"
-and "embedding similarity" metrics mentioned in the 2024 README were never implemented; only
-top-1 accuracy was measured. No deduplication or image filtering was performed.
+Three further Rare Species prompt variants (0.31-0.36) and the CLIP / OpenCLIP baselines
+(0.06 / 0.08 on iNat 2019) exist on slides only and have no notebook or log. The precision-recall
+and embedding-similarity metrics mentioned in the 2024 write-up were never implemented; only
+top-1 accuracy was measured. Provenance for every number, including the source cell, is in
+[`results/results.md`](results/results.md) (machine-readable: `results/results_inventory.json`);
+the claim-by-claim check is in [`docs/claims_audit.md`](docs/claims_audit.md).
 
-## Where things are
+Two findings from the audit change how the numbers should be read. BioCLIP's pre-training set,
+TreeOfLife-10M, contains the whole iNat21 training split, so the iNaturalist evaluations are
+zero-shot only in the no-fine-tuning sense; Rare Species, whose 400 species were removed from
+that set, is the one unseen-species test ([`docs/evaluation_validity.md`](docs/evaluation_validity.md)).
+And Hiera's "hierarchy" is spatial (four stages of decreasing resolution); the fine-tuning is a
+flat softmax over species and uses no taxonomy.
 
-| | |
-|---|---|
-| `src/biodiv/` | Shared Python code (plus `fixtures.py`, the synthetic data used by tests and smoke runs): iNaturalist loading with explicit category maps, train vs. eval transforms, Hiera construction, layer-wise LR + warmup/cosine schedule, checkpoint resume, training loop, BioCLIP zero-shot evaluation with explicit species identity and tie handling, pinned checkpoint loading |
-| `scripts/` | `train_hiera.py --config ...` and `eval_bioclip.py --dataset ... --checkpoint ... --prompt-style ...` |
-| `configs/` | `hiera_inat2019.yaml`, `hiera_inat2021_mini.yaml`, `bioclip_eval.yaml` (pinned Hub revisions, dataset paths) |
-| `notebooks/` | Reader-facing, output-free: `bioclip_inat21_val.ipynb`, `bioclip_rare_species_prompts.ipynb`, `inaturalist_tutorial.ipynb`. Old-name to new-name map: `docs/notebook_index.md` |
-| `results/` | `results.md`, `results_inventory.json`, `historical/` (W&B report PDF) |
-| `docs/` | `claims_audit.md` (every 2024 claim checked), `evaluation_validity.md` (what each checkpoint had seen), `changes.md` (code fixes and which change behaviour), `reproduction.md`, `environment.md`, `licensing.md`, `presentations/` (both decks as `.pptx` and PDF) |
-| `archive/2024-original/` | Verbatim 2024 scripts, notebooks (with outputs) and README; see its README |
-| `tests/` | 33 CPU tests on synthetic fixtures and real upstream record samples; `.github/workflows/ci.yml` runs them plus the notebooks in smoke mode |
+## Demo
 
-The presentation is `docs/presentations/Advancing_Biodiversity_Conservation_Species_Classification.pdf`
-(26 slides; the slide-17 bar chart does not render in the PDF export, open the `.pptx`).
-
-## Known limitations and reproduction status
-
-* The 2024 training scripts evaluated on augmented validation images, applied no stochastic
-  depth despite reporting 0.1, used MixUp alpha 1.0 despite reporting 0.8, and computed an
-  invalid validation loss (Hiera's eval-mode softmax was fed to cross-entropy). Accuracies are
-  unaffected by the last point. Details and the effective learning rates: `docs/changes.md`.
-* The iNat21 BioCLIP numbers were computed without normalising the text embeddings.
-* The three Rare Species prompt results are not on one task (398 vs 400 labels).
-* The W&B charts show the Hiera runs at roughly 45 and 52 epochs on 2024-09-05; whether the
-  300-epoch runs completed is not recorded. The trained weights were never committed.
-* BioCLIP's pre-training set (TreeOfLife-10M) contains the whole iNat21 training split, so the
-  iNaturalist evaluations are zero-shot only in the no-fine-tuning sense; Rare Species is the only
-  unseen-species evaluation. Overlap between iNat 2019 and iNat21 images is unknown.
-  See `docs/evaluation_validity.md`.
-* Package versions and Hub revisions from 2024 were not recorded. The corrected code pins
-  current ones (`docs/environment.md`).
-* Reproduction status: tests and smoke runs pass on CPU; no real-data run has been made with
-  the corrected code. `docs/reproduction.md` gives the commands and data layout.
-
-## Quick start
+Zero-shot classification with the pinned BioCLIP checkpoint against the 400 Rare Species
+labels. `--sample` streams a few labelled images from the dataset so the predictions can be
+checked against ground truth; `--image` classifies your own photos. The first run downloads the
+checkpoint (~600 MB) and, for `--sample`, one dataset shard (~250 MB).
 
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # or a CUDA build
-pip install -e ".[dev]"
-pytest -q                                                   # 33 tests, no downloads, ~30 s
-python -m biodiv.fixtures tests/fixtures/data && python scripts/train_hiera.py --config tests/fixtures/hiera_smoke.yaml --data-root tests/fixtures/data
-python scripts/eval_bioclip.py --dataset fixture --checkpoint lookup --prompt-style common --prefix "a photo of "
+pip install -e ".[hub]"
+python scripts/demo.py --sample 6
+python scripts/demo.py --image my_photo.jpg --prompt-style common --prefix "a photo of "
 ```
 
-Real runs need `BIODIV_DATA_ROOT` pointing at the iNaturalist competition data (and a GPU for
-training); see `docs/reproduction.md`. W&B logging is off by default (`--wandb` to enable).
+Output of the first command on an 8-core CPU (39 s including model load):
 
-## Credits and citations
+```
+checkpoint imageomics/bioclip@ce901ab3c6a9 on cpu; 400 species labels; prompt style 'taxonomic_common', prefix ''
 
-Supervision: Graham Taylor (Vector Institute, University of Guelph). Mentorship: Nate
-Lesperance. Thanks to the University of Guelph Machine Learning Reading Group and the
-iNaturalist community.
+dataset row 0   true: Cyclonaias tuberculata (purple wartyback)
+  1. Cyclonaias tuberculata       purple wartyback               cosine 0.262  <- correct
+  2. Haliotis roei                Roe's abalone                  cosine 0.191
+  3. Wallago attu                 freshwater shark               cosine 0.190
+  4. Aonyx capensis               African Clawless Otter         cosine 0.176
+  5. Potamilus amphichaenus       Texas heelsplitter             cosine 0.172
+
+dataset row 200   true: Anolis koopmani (Koopmans Anole)
+  1. Negaprion acutidens          sicklefin lemon shark          cosine 0.190
+  2. Onychoprion aleuticus        Aleutian Tern                  cosine 0.189
+  3. Thinornis cucullatus         Hooded Dotterel                cosine 0.185
+  4. Rhinoderma darwinii          Darwin's Frog                  cosine 0.183
+  5. Negaprion brevirostris       lemon shark                    cosine 0.183
+
+dataset row 400   true: Ceratophora tennentii (Rhinoceros Agama)
+  1. Anolis bitectus              Roof Anole                     cosine 0.283
+  2. Anolis macrolepis            Big-scaled Anole               cosine 0.244
+  3. Anolis baracoae              Baracoa Anole                  cosine 0.241
+  4. Anolis luciae                Saint Lucian Anole             cosine 0.230
+  5. Anolis barbouri              Hispaniolan Hopping Anole      cosine 0.222
+
+dataset row 600   true: Euryceros prevostii (Helmet Vanga)
+  1. Paradisaea rubra             Red Bird-of-Paradise           cosine 0.203
+  2. Campylopterus villaviscensio Napo Sabrewing                 cosine 0.193
+  3. Mantella aurantiaca          Golden Mantella                cosine 0.191
+  4. Ognorhynchus icterotis       Yellow-eared Parrot            cosine 0.188
+  5. Sericossypha albocristata    White-capped Tanager           cosine 0.184
+
+dataset row 800   true: Adetomyrma venatrix (dracula ant)
+  1. Adetomyrma venatrix          dracula ant                    cosine 0.226  <- correct
+  2. Ognorhynchus icterotis       Yellow-eared Parrot            cosine 0.215
+  3. Balaeniceps rex              Shoebill                       cosine 0.192
+  4. Pontoporia blainvillei       Franciscana                    cosine 0.191
+  5. Naultinus stellatus          Starry Tree Gecko              cosine 0.189
+
+dataset row 1000   true: Acropora millepora (staghorn coral)
+  1. Stylophora pistillata        Hood Coral                     cosine 0.284
+  2. Acropora acuminata           staghorn coral                 cosine 0.270
+  3. Acropora millepora           staghorn coral                 cosine 0.268  <- correct
+  4. Fungia fungites              Common Mushroom Coral          cosine 0.244
+  5. Acropora cervicornis         Staghorn Coral                 cosine 0.233
+
+top-1 correct on these 6 streamed samples: 2/6 (a demo, not an evaluation)
+```
+
+Two of six is in line with the recorded 37% on the full set. The last sample is the
+shared-common-name case: *Acropora acuminata* and *A. millepora* are both "staghorn coral" and
+score within 0.002 of each other.
+
+## What was done
+
+**Hiera fine-tuning.** `hiera_tiny_224` initialised from the MAE ImageNet-1k checkpoint, full
+fine-tuning with AdamW (weight decay 0.05), layer-wise learning-rate decay 0.65, label smoothing
+0.1, RandAugment, MixUp and CutMix, batch 512, one A40, about 30 minutes per epoch. Runs on
+iNat 2019 (265,213 training images) and iNat 2021 train_mini (500,000). The 2024 scripts had
+several defects, listed with their effect in [`docs/changes.md`](docs/changes.md); the
+corrected recipe is in `configs/hiera_inat2019.yaml` and `configs/hiera_inat2021_mini.yaml`.
+
+**BioCLIP zero-shot evaluation.** One text prompt per species, cosine similarity between image
+and text embeddings, argmax. Prompt formats follow the BioCLIP paper: common name, scientific
+name, full seven-rank taxonomy, and combinations, with or without a leading "a photo of".
+Species identity is kept separate from prompt text, so two species sharing a common name are
+scored with an explicit tie rule instead of being merged.
+
+## Repository
+
+| | |
+|---|---|
+| `src/biodiv/` | Shared code: iNaturalist loading with explicit category maps, train vs. eval transforms, Hiera construction, LR schedule, checkpoint resume, training loop, zero-shot evaluation, pinned checkpoint loading, synthetic fixtures |
+| `scripts/` | `demo.py`, `train_hiera.py --config ...`, `eval_bioclip.py --dataset ... --checkpoint ... --prompt-style ...`, `make_results_figure.py` |
+| `configs/` | Hiera recipes for both datasets; pinned Hub revisions and dataset paths for evaluation |
+| `notebooks/` | `bioclip_inat21_val`, `bioclip_rare_species_prompts`, `inaturalist_tutorial` (output-free; run on fixtures without data) |
+| `results/` | Results table, machine-readable inventory, the 2024 W&B report |
+| `docs/` | Claims audit, evaluation validity, change log, reproduction guide, environment, licensing, the presentation (`.pptx` and PDF; the slide-17 chart does not render in the PDF export), figures |
+| `tests/` | CPU tests on synthetic fixtures and real upstream record samples; CI runs them plus the notebooks |
+
+## Reproducing
+
+```bash
+pip install -e ".[dev]" && pytest -q                         # ~30 s, no downloads
+python scripts/train_hiera.py --config configs/hiera_inat2019.yaml        # needs the dataset and a GPU
+python scripts/eval_bioclip.py --dataset rare-species --checkpoint bioclip --prompt-style taxonomic_common
+```
+
+Dataset layout, path configuration (`BIODIV_DATA_ROOT`, `BIODIV_CACHE_DIR`, `BIODIV_OUTPUT_DIR`),
+the full command list and the status of each check are in
+[`docs/reproduction.md`](docs/reproduction.md). A real run of the corrected code is a new
+experiment and should be recorded as such, not as a confirmation of the 2024 values.
+
+## Credits
+
+Supervision: Graham Taylor (Vector Institute, University of Guelph). Thanks to the University
+of Guelph Machine Learning Reading Group and the iNaturalist community.
 
 * Hiera: Ryali et al., "Hiera: A Hierarchical Vision Transformer without the Bells-and-Whistles",
-  ICML 2023. Code Apache-2.0, weights CC BY-NC 4.0 (`facebookresearch/hiera`).
+  ICML 2023 (`facebookresearch/hiera`; code Apache-2.0, weights CC BY-NC 4.0).
 * BioCLIP, TreeOfLife-10M and Rare Species: Stevens et al., "BioCLIP: A Vision Foundation Model
   for the Tree of Life", CVPR 2024 (Imageomics Institute; model MIT, datasets CC0).
 * iNaturalist 2019 and 2021 competition datasets: Van Horn et al. / Visipedia
   (`visipedia/inat_comp`); non-commercial research use, no image redistribution.
-* open_clip (Ilharco et al.), torchvision RandAugment / MixUp / CutMix, Weights & Biases.
+* open_clip (Ilharco et al.), torchvision, Weights & Biases.
 
-Licensing of this repository's own content is unresolved; see `docs/licensing.md`.
+Licensed under the MIT License (`LICENSE`); third-party components keep their own licences
+(`docs/licensing.md`).

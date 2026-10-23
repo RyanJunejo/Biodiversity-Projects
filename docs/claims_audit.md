@@ -57,7 +57,7 @@ caveats. **Unsupported** = no artifact; the claim was removed or relabelled in t
 | 25 | Rare Species text types: 0.294 / 0.313 / 0.327 / 0.36 / 0.371 / 0.373 (slide 19) | Partly | Three of six have notebooks (0.2944, 0.3717, 0.3739). The common-name run is a 398-way task (two collisions merge four species); the others are 400-way, so the bars are not on one task. Scientific, taxonomic and scientific+common have no artifact. |
 | 26 | "BioCLIP demonstrates strong performance ... particularly with mixed text styles" (README) | Supported in direction | Among the three recorded runs, taxonomic+common (0.372-0.374) beats common-only (0.294); consistent with the BioCLIP paper. |
 | 27 | "BioCLIP was more effective when detailed text annotations were available, while Hiera excelled in purely visual classification" (README) | **Unsupported** as a comparison | Hiera was fine-tuned (supervised) and BioCLIP was zero-shot; they were run on different splits and settings and never compared on one task. |
-| 28 | "Refined RAG methodologies" as future work (README); RAG deck | Context only | The RAG deck is Nate Lesperance's 30 April 2024 talk, included for context; no RAG code or result exists in this repository. |
+| 28 | "Refined RAG methodologies" as future work (README); a collaborator's RAG deck was included in 2024 | Context only | No RAG code or result exists in this repository; the deck was not this project's work and is not carried into the cleaned tree (it remains at tag `original-2024`). |
 
 ## Documentation accuracy
 

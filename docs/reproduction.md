@@ -8,6 +8,7 @@
 | Hiera training loop smoke test (synthetic 3-class fixture, random init, 2 epochs + resume, CPU) | **Pass** (~10 s) |
 | BioCLIP evaluation smoke test (synthetic 4-species fixture, weight-free encoder) | **Pass** |
 | Cleaned notebooks executed from a fresh kernel in smoke mode | **Pass** (all three, `jupyter nbconvert --execute`) |
+| Demo (`scripts/demo.py`): pinned BioCLIP weights, 400 Rare Species labels, six images streamed from the dataset | **Run** on CPU; output in `README.md` (a demo, not an evaluation) |
 | Hiera fine-tuning on iNat 2019 / iNat 2021-mini re-run | **Not done** (needs the datasets, ~74 GB / ~42 GB, and a GPU; the 2024 runs took ~30 min/epoch on an A40) |
 | BioCLIP evaluations re-run on real data | **Not done** (needs the datasets and ~600 MB per checkpoint download; a CPU run over 100,000 iNat21 val images is slow) |
 
@@ -51,6 +52,14 @@ Vector cluster the 2024 runs used `/datasets/inat_comp/<year>/` (set `BIODIV_DAT
 * Rare Species: `pip install -e ".[hub]"` and the code downloads `imageomics/rare-species` at
   the pinned revision (about 2 GB), or point `BIODIV_RARE_SPECIES_JSONL` / the config at a JSONL
   export made with `datasets.Dataset.to_json` (the 2024 format).
+
+## Demo (real weights, a few real images)
+
+```bash
+pip install -e ".[hub]"
+python scripts/demo.py --sample 6                        # downloads ~600 MB of weights + ~250 MB of one dataset shard
+python scripts/demo.py --image photo.jpg --prompt-style common --prefix "a photo of "
+```
 
 ## Smoke tests (no data, no weights, CPU)
 

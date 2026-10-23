@@ -1,11 +1,13 @@
 # Archive of the original 2024 files
 
-Everything in this directory is a **verbatim copy** of the files Ryan Junejo uploaded to this
-repository between 4 September and 31 October 2024, including every recorded notebook output.
-Nothing here has been edited; the files were only moved (`git mv`) so that the cleaned-up
-layout could take the top level. The complete original tree, with its original file names and
-locations, is also preserved by the annotated git tag **`original-2024`** (commit `f609f84`,
-the last 2024 commit):
+Everything in this directory is a copy of the files Ryan Junejo uploaded to this repository
+between 4 September and 31 October 2024, including every recorded **text** output of the
+notebooks. One edit was made: embedded image outputs (dataset photographs rendered inline,
+which the iNaturalist terms do not allow redistributing) were removed from the notebook files;
+code, markdown and printed outputs are untouched. The files were otherwise only moved
+(`git mv`) so that the cleaned-up layout could take the top level. The complete original tree,
+with every output and its original file names and locations, is preserved by the annotated git
+tag **`original-2024`** (commit `f609f84`, the last 2024 commit):
 
 ```bash
 git show original-2024 --stat          # what the repository looked like on 2024-10-31
@@ -31,7 +33,7 @@ present-day replacements live under `src/`, `scripts/`, `configs/` and `notebook
 | `Notebooks/How to Navigate iNaturalist (1).ipynb` | `notebooks/How to Navigate iNaturalist (1).ipynb` | `notebooks/inaturalist_tutorial.ipynb` |
 | `Notebooks/README.md` | `notebooks/README.md` | `docs/notebook_index.md` |
 | `Advancing Biodiversity Conservation ... .pptx` | `docs/presentations/Advancing_Biodiversity_Conservation_Species_Classification.pptx` (+ `.pdf` export) | unchanged |
-| `RAGpresentation.pptx` | `docs/presentations/RAG_presentation_Nate_Lesperance_2024-04-30.pptx` (+ `.pdf` export) | unchanged |
+| `RAGpresentation.pptx` | not carried over (a collaborator's April 2024 talk on retrieval-augmented generation, not part of this project's work); available at the tag | - |
 | `iNaturalist Evaluation Metrics _ hiera_inat2021_transfer_learning – Weights & Biases.pdf` | `results/historical/wandb_report_2024-09-05_iNaturalist_Evaluation_Metrics.pdf` | unchanged |
 
 ## Files that existed earlier in 2024 and were deleted before this cleanup
@@ -47,7 +49,7 @@ are not restored here but remain reachable from the tag's ancestry:
 
 ## Notebook outputs kept here
 
-The archived notebooks still contain their full recorded outputs (several MB of printed label
-lists, image dumps and progress bars). They are the only surviving evidence for the BioCLIP
-accuracies listed in `results/results.md`, so they are kept intact; the cleaned notebooks at the
-top level are committed without outputs.
+The archived notebooks keep their recorded text outputs (printed label lists, accuracies,
+progress bars, tracebacks). They are the only surviving evidence for the BioCLIP accuracies
+listed in `results/results.md`, so they are kept; only inline images were removed (see above).
+The cleaned notebooks at the top level are committed without outputs.

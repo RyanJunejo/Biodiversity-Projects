@@ -189,6 +189,16 @@ def cosine_scores(image_emb: torch.Tensor, text_emb: torch.Tensor) -> torch.Tens
 
 
 @torch.no_grad()
+def classify_images(encoder, images: Sequence[Image.Image], table: SpeciesTable, style: str, prefix: str = "", top_k: int = 5):
+    """Rank every species for a few PIL images; returns, per image, a list of ``(Species, cosine)`` best first."""
+    text_emb = encode_prompts(encoder, table.prompts(style, prefix))
+    tensors = torch.stack([encoder.preprocess(im.convert("RGB")) for im in images])
+    image_emb = l2_normalize(encoder.encode_image(tensors).float().cpu())
+    top = cosine_scores(image_emb, text_emb).topk(min(top_k, len(table)), dim=1)
+    return [[(table[j], float(v)) for v, j in zip(vals, idxs)] for vals, idxs in zip(top.values.tolist(), top.indices.tolist())]
+
+
+@torch.no_grad()
 def evaluate_zero_shot(
     encoder,
     records: Sequence[tuple],

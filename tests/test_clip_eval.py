@@ -4,7 +4,7 @@ import math
 
 import torch
 
-from biodiv.clip_eval import ImageRecords, cosine_scores, duplicate_prompt_groups, encode_images, encode_prompts, evaluate_zero_shot
+from biodiv.clip_eval import ImageRecords, classify_images, cosine_scores, duplicate_prompt_groups, encode_images, encode_prompts, evaluate_zero_shot
 from biodiv.fixtures import fixture_encoder, load_fixture_rare_species
 from biodiv.metrics import accuracy, top1_correct, topk_accuracy
 from biodiv.species_data import inat_split
@@ -100,3 +100,11 @@ def test_inat21_labels_use_explicit_category_mapping(tmp_path):
     assert records == [("/root/val/b.jpg", 1), ("/root/val/a.jpg", 0)]
     assert table.prompts("taxonomic_common")[1] == \
         "Animalia Chordata Aves Passeriformes Corvidae Pica hudsonia with common name Black-billed Magpie"
+
+
+def test_classify_images_ranks_true_species_first():
+    records, table = load_fixture_rare_species(images_per_species=1)
+    images = [source for source, _ in records]
+    ranked = classify_images(fixture_encoder(), images, table, "scientific", top_k=3)
+    assert [r[0][0].species_id for r in ranked] == [label for _, label in records]
+    assert all(len(r) == 3 and r[0][1] >= r[1][1] >= r[2][1] for r in ranked)
