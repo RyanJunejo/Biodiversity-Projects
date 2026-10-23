@@ -26,8 +26,8 @@ are kept under [`archive/2024-original/`](archive/2024-original/) and at the git
 We started from `hiera_tiny_224`, initialised with the self-supervised MAE checkpoint trained on
 ImageNet-1k, and fine-tuned the whole network on two datasets: iNaturalist 2019, with 265,213
 training images over 1,010 species, and the "mini" training split of iNaturalist 2021, with
-500,000 images over 10,000 species. The recipe followed the fine-tuning settings from the Hiera
-paper: AdamW with weight decay 0.05, layer-wise learning-rate decay of 0.65, label smoothing of
+500,000 images over 10,000 species. We used the standard MAE fine-tuning recipe, which the Hiera paper
+also uses: AdamW with weight decay 0.05, layer-wise learning-rate decay of 0.65, label smoothing of
 0.1, RandAugment, MixUp and CutMix, and a batch size of 512, on a single A40 at roughly thirty
 minutes per epoch. We measured top-1 accuracy on the official validation splits after each epoch
 and logged everything to Weights & Biases.
