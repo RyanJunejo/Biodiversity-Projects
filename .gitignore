@@ -1,0 +1,47 @@
+# datasets, caches, checkpoints, outputs (never commit these)
+data/
+cache/
+outputs/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.arrow
+*.jsonl
+*.tar.gz
+tests/fixtures/data/
+wandb/
+runs/
+lightning_logs/
+
+# credentials
+.env
+*.key
+*.token
+.netrc
+wandb_api_key*
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# notebooks: executed copies and checkpoints
+.ipynb_checkpoints/
+notebooks/**/outputs/
+*.executed.ipynb
+
+# editors / OS / tooling
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.context/

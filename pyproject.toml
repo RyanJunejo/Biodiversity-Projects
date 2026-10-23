@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biodiv"
+version = "0.1.0"
+description = "Hiera fine-tuning and BioCLIP zero-shot evaluation code from a 2024 Vector Institute biodiversity internship"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "pillow>=10",
+    "numpy>=1.24",
+    "pyyaml>=6",
+    "open_clip_torch>=2.24",
+    "hiera-transformer==0.1.4",
+    "huggingface_hub>=0.23",
+]
+
+[project.optional-dependencies]
+hub = ["datasets>=2.18"]      # Rare Species via the Hugging Face Hub
+wandb = ["wandb>=0.17"]       # optional experiment logging
+dev = ["pytest>=8", "ruff>=0.5", "nbformat>=5.10", "nbclient>=0.10", "nbconvert>=7", "ipykernel>=6", "matplotlib>=3.8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+filterwarnings = ["ignore::FutureWarning"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py310"
+extend-exclude = ["archive", "notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E741"]

@@ -1,0 +1,26 @@
+# Exact versions of the environment in which the tests, smoke runs and notebook
+# executions in docs/reproduction.md were performed (Python 3.11.17, CPU-only).
+# Install CPU torch first:  pip install torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cpu
+# This is NOT the 2024 environment, which was not recorded (see docs/environment.md).
+torch==2.14.1
+torchvision==0.29.1
+open_clip_torch==3.3.0
+hiera-transformer==0.1.4
+huggingface_hub==2.3.0
+timm==1.0.30
+pillow==12.3.0
+numpy==2.4.6
+pyyaml==6.0.3
+safetensors==0.8.0
+ftfy==6.3.1
+regex==2026.9.29
+# development / notebooks
+pytest==9.1.1
+ruff==0.17.2
+nbformat==5.11.1
+nbclient==0.11.0
+nbconvert==7.17.2
+ipykernel==7.4.0
+matplotlib==3.11.2
+# optional
+wandb==0.31.0

@@ -1,0 +1,29 @@
+# Shared settings for scripts/eval_bioclip.py. Command-line flags override.
+# Checkpoints are pinned to the Hugging Face Hub commits observed on 2026-10-23.
+checkpoints:
+  bioclip:
+    repo_id: imageomics/bioclip
+    revision: ce901ab3c6a913f9e9ef94ce6d27761069f4f01c
+  bioclip-inat21-only:
+    repo_id: imageomics/bioclip-vit-b-16-inat-only
+    revision: 9637f081cb39aa7b97e2d651de89bc39b7ae57c8
+
+datasets:
+  inat21-val:
+    val_json: inat_comp/2021/val.json        # relative to BIODIV_DATA_ROOT
+    image_root: inat_comp/2021
+  inat2019-val:
+    val_json: inat_comp/2019/val2019.json
+    categories_json: inat_comp/2019/categories.json
+    image_root: inat_comp/2019
+  rare-species:
+    source: hub                               # "hub" (datasets library) or a path to an exported .jsonl
+    revision: 7e984e1f68ab70170e7913286ad1ff1a0e5ac370
+
+# Prompt formats used in 2024 (see results/results.md):
+#   inat21-val      taxonomic_common, prefix ""
+#   inat2019-val    scientific,       prefix "a photo of a "
+#   rare-species    common,           prefix "a photo of "
+#   rare-species    taxonomic_common, prefix "a photo of "  and prefix ""
+batch_size: 32
+num_workers: 4

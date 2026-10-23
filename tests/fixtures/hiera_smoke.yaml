@@ -1,0 +1,35 @@
+# Smoke-test config: synthetic 3-class fixture, randomly initialised Hiera-tiny,
+# CPU, two short epochs. This is NOT an experiment reproduction.
+dataset_name: fixture
+train_json: train.json
+val_json: val.json
+categories_json: categories.json
+image_root: .
+image_size: 224
+batch_size: 3
+eval_batch_size: 3
+num_workers: 0
+model_name: hiera_tiny_224
+model_checkpoint: mae_in1k
+pretrained: false
+drop_path_rate: 0.1
+epochs: 2
+warmup_epochs: 1
+base_lr: 1.0e-3
+layer_decay: 0.65
+weight_decay: 0.05
+betas: [0.9, 0.999]
+label_smoothing: 0.1
+mixup_alpha: 0.8
+cutmix_alpha: 1.0
+amp: false
+horizontal_flip: true
+randaugment_num_ops: 2
+randaugment_magnitude: 1
+run_name: hiera_smoke
+checkpoint_every: 1
+resume: auto
+seed: 0
+max_batches_per_epoch: 1
+wandb:
+  enabled: false

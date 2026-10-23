@@ -1,77 +1,246 @@
-# Advancing Biodiversity Conservation: Comparative Evaluation of Machine Learning Models for Species Classification
+# Species Classification with Hiera and BioCLIP
 
-Hello! This is a collection of the work I did at my internship at the Vector Institute under the supervision of Graham Taylor.
-This repository contains code, data, and documentation for our project on evaluating machine learning models for species classification, focusing on biodiversity conservation. This project compares various models to assess their effectiveness in classifying species, particularly rare and underrepresented ones. The project also proposes novel methodologies for model evaluation to improve species classification accuracy and robustness.
-I strongly suggest you click on the powerpoint presentation with the same name to learn more!
+This repository collects the work I did as a research intern at the Vector Institute in the
+summer of 2024, under the supervision of Graham Taylor. We wanted to know how far two quite
+different approaches could get at recognising species from photographs. The first was to
+fine-tune a Hiera vision transformer on the iNaturalist competition datasets. The second was to
+take BioCLIP, a CLIP model pre-trained on biological images, and ask it to classify species
+zero-shot from nothing more than the species name written into a text prompt. Along the way we
+also looked at how the wording of that prompt, whether a common name, a scientific name, the
+full taxonomy, or some combination, changes what BioCLIP gets right.
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Dataset Description](#dataset-description)
-- [Model Architecture](#model-architecture)
-  - [Hierarchical Vision Transformers (Hiera)](#hierarchical-vision-transformers-hiera)
-  - [BioCLIP](#bioclip)
-- [Methods](#methods)
-- [Evaluation Metrics](#evaluation-metrics)
-- [Results](#results)
-- [Lessons Learned](#lessons-learned)
-- [Future Work](#future-work)
-- [Contributing](#contributing)
+In 2026 we returned to the project to put it in order. The code in this repository is a clean,
+tested implementation of both experiments, with a configuration file for each dataset and a demo
+that runs in under a minute, and we checked every claim from the original write-up and slides
+against the notebooks and logs that survived. We did not re-run the experiments, so every number
+in this README is the value we recorded in 2024, with the conditions it was measured under
+stated beside it. The original scripts, notebooks and presentation
+are kept under [`archive/2024-original/`](archive/2024-original/) and at the git tag
+`original-2024`.
 
+![Top-1 accuracy as recorded in 2024](docs/figures/results_top1.png)
 
----
+## What we did
 
-## Introduction
-In this project, we explore machine learning (ML) approaches for species classification to support biodiversity conservation. Accurate species classification is essential for monitoring biodiversity, preserving rare species, and supporting conservation efforts worldwide. By comparing models such as **Hiera** and **BioCLIP**, we aim to improve classification accuracy and evaluate model effectiveness, particularly for rare or difficult-to-distinguish species. This project also proposes tailored metrics to assess model performance more effectively.
+### Fine-tuning Hiera on iNaturalist
 
-## Dataset Description
-We use three key datasets in this project:
-1. **Tree of Life 10M+**: A comprehensive dataset representing a broad taxonomy of millions of species, with rich hierarchical structure.
-2. **iNaturalist (iNat)**: User-generated data collected through citizen science, with species observations from across the world.
-3. **Rare Species**: A subset focusing on rare and underrepresented species that are challenging to classify due to data scarcity.
+We started from `hiera_tiny_224`, initialised with the self-supervised MAE checkpoint trained on
+ImageNet-1k, and fine-tuned the whole network on two datasets: iNaturalist 2019, with 265,213
+training images over 1,010 species, and the "mini" training split of iNaturalist 2021, with
+500,000 images over 10,000 species. We used the standard MAE fine-tuning recipe, which the Hiera paper
+also uses: AdamW with weight decay 0.05, layer-wise learning-rate decay of 0.65, label smoothing of
+0.1, RandAugment, MixUp and CutMix, and a batch size of 512, on a single A40 at roughly thirty
+minutes per epoch. We measured top-1 accuracy on the official validation splits after each epoch
+and logged everything to Weights & Biases.
 
-### Dataset Details
-- **Intersections and Similarities**: While Tree of Life and iNat have similar species but differ in quality (curated vs. user-generated), the Rare Species subset specifically targets endangered or uncommon species to enhance model robustness.
-- **Data Pruning**: Each dataset is cleaned and pruned to remove duplicates, low-quality images, and outliers.
+One thing worth being clear about, since the word invites confusion: Hiera's
+"hierarchy" refers to its spatial pyramid of feature maps, which shrink in resolution and grow in
+channels through four stages. It has nothing to do with biological taxonomy. Our classifier was
+a flat softmax over species and never saw the taxonomic tree.
 
-## Model Architecture
+### Zero-shot classification with BioCLIP
 
-### Hierarchical Vision Transformers (Hiera)
-**Hiera** is a Vision Transformer (ViT) model specialized in hierarchical classification, which aligns well with taxonomic classification in species identification. By leveraging Hiera, we aim to capture the hierarchical relationships in species data, allowing for more nuanced classification, especially across complex taxonomy levels.
-
-### BioCLIP
-**BioCLIP** is a variant of the **CLIP** model, adapted for biological and ecological data. CLIP is a powerful multi-modal model that aligns images and textual descriptions into a shared embedding space. BioCLIP fine-tunes this approach for species classification by leveraging scientific, common, and taxonomic text styles, improving its performance in distinguishing similar or visually ambiguous species.
-
-### Additional Models
-Other models, such as standard ViTs, are also tested to provide a comparative baseline for evaluating Hiera and BioCLIP’s performance.
-
-## Methods
-The primary methods and preprocessing techniques employed include:
-- **Data Augmentation**: Applying RandAug, Mixup, CutMix, and other augmentation techniques to enhance model robustness.
-- **Layer-wise Decay**: Utilizing variable learning rates across layers to optimize fine-tuning and model generalization.
-- **Text Style Variations for BioCLIP**: Experimenting with different text styles (Common, Scientific, Taxonomic, and Mixed) to determine which performs best for text-image embedding.
-
-## Evaluation Metrics
-Two key metrics are introduced to evaluate model performance:
-1. **Precision-Recall Based Metric**: Focused on handling the imbalance in species data, especially for rare species.
-2. **Embedding-Based Similarity Metric**: Compares the closeness of species embeddings to better capture the model's understanding of species similarity.
+We evaluated BioCLIP, a ViT-B/16 CLIP model pre-trained on the TreeOfLife-10M dataset, without
+any fine-tuning. For every species we wrote one text prompt, embedded the prompt and the image
+with BioCLIP's two encoders, and took the species whose prompt had the highest cosine similarity
+to the image. We ran this on the iNaturalist 2019 and 2021 validation splits, where we also
+compared BioCLIP against the ablation checkpoint that the BioCLIP authors trained on
+iNaturalist 2021 alone, and on the Rare Species dataset: 11,983 Encyclopedia of Life images of
+400 species on the IUCN Red List, which the BioCLIP authors deliberately held out of their
+training data. On Rare Species we compared the prompt formats from the BioCLIP paper, namely the
+common name, the scientific name, the full seven-rank taxonomy, and the combinations of these,
+each with and without a leading "a photo of".
 
 ## Results
-Our results highlight the strengths and weaknesses of each model:
-- **Hiera** outperforms standard ViTs in handling hierarchical data structures but requires significant computational resources.
-- **BioCLIP** demonstrates strong performance in species classification by leveraging text descriptions, particularly with mixed text styles (scientific, common, and taxonomic).
-- **Comparison of BioCLIP vs Hiera**: BioCLIP was more effective when detailed text annotations were available, while Hiera excelled in purely visual classification tasks with a hierarchical structure.
 
-## Lessons Learned
-Key insights from the project:
-- **Data Imbalance**: Handling rare species remains challenging due to limited data availability.
-- **Complex Model Training**: Advanced models like Hiera and BioCLIP require large datasets and computational power.
-- **Evaluation Limitations**: Standard metrics were insufficient, necessitating custom metrics tailored to biodiversity tasks.
+| Experiment | Top-1 accuracy | Where the number comes from |
+|---|---|---|
+| Hiera-tiny fine-tuned on iNaturalist 2019, evaluated on its 3,030 validation images | 0.67 to 0.69 | W&B accuracy chart |
+| Hiera-tiny fine-tuned on iNaturalist 2021 mini, evaluated on its 100,000 validation images | about 0.61 | W&B accuracy chart |
+| BioCLIP on iNaturalist 2019 validation, prompt "a photo of a {scientific name}" | 0.706 | notebook output |
+| BioCLIP on iNaturalist 2021 validation, prompt "{taxonomy} with common name {common name}" | 0.640 | notebook output |
+| BioCLIP trained on iNaturalist 2021 only, same prompt and split | 0.720 | notebook output |
+| BioCLIP on Rare Species, common names only | 0.294 | notebook output |
+| BioCLIP on Rare Species, taxonomy plus common name, with and without "a photo of" | 0.372 and 0.374 | notebook outputs |
 
-## Future Work
-This project opens up potential research directions:
-1. **Refined RAG Methodologies**: Further enhance RAG approaches for improved species classification.
-2. **iNat Community Contribution**: Investigate ways to incorporate iNaturalist community contributions for model refinement.
-3. **Hybrid Models**: Combine Hiera’s hierarchical capabilities with BioCLIP’s embedding-based approach for more robust results.
+The two Hiera numbers are approximate. The trained checkpoints were never committed, and the
+only record of those runs is the Weights & Biases report in `results/historical/`, whose charts
+show the 2019 run at about 45 epochs and the 2021 run at about 52 of the 300 we had configured.
+The 2021 run peaked near 0.61 around epoch 30 and had drifted down to about 0.56 by the time the
+report was exported. In both runs the validation images went through the training
+augmentations rather than a fixed resize, and stochastic depth was not applied even though it
+was part of the configuration, so these accuracies should be read as indicative rather than
+definitive.
 
-## Contributions
-Thank you to Graham Taylor for supervising my work at the Vector Institute. Thank you to Nate Lesperance for being a great mentor and advisor. Big Shoutout to the Unviersity of Guelph's Machine Learning Reading Group. Lastly, a huge thanks to the Inaturalist community without whom this project never could've happened.
+The BioCLIP numbers on iNaturalist are exact, but they are not what they first appear to be.
+TreeOfLife-10M contains the entire iNaturalist 2021 training split, so BioCLIP had seen every
+one of those 10,000 species during pre-training, along with the very taxonomic and common-name
+text we put in the prompts. The 2019 validation species almost certainly overlap too, although
+no mapping between the two competitions exists, so we cannot say how much. These evaluations
+are zero-shot only in the sense that we did not fine-tune anything. The two iNaturalist 2021
+numbers were also computed without normalising the text embeddings, so each score was a cosine
+similarity scaled by the norm of the prompt's embedding rather than a cosine similarity as such,
+and both checkpoints shared a single preprocessing pipeline. The Rare Species results are the one place where BioCLIP was
+genuinely looking at species it had never seen, which is why we think they are the most
+interesting numbers in the project.
+
+The Rare Species results need one more caveat. Only 398 of the 400 species have a distinct
+common name, because two pairs of species share one: *Acropora acuminata* and *A. millepora* are
+both "staghorn coral", and *Tylototriton shanjing* and *T. verrucosus* are both "Yunnan Newt".
+Our common-name evaluation built its label list from the unique names, so those pairs were
+merged and it scored a 398-way task, whereas the taxonomy prompts scored all 400. The gap of almost
+eight points between them is far larger than the merge could explain, so the ordering stands,
+but the numbers are not measured on exactly the same task. The slides from 2024 show three more
+prompt formats on Rare Species, and CLIP and OpenCLIP baselines on iNaturalist 2019, for which
+no notebook or log survives; we show them in the figure in a separate colour and do not rely on
+them. The original README also described a precision-recall metric and an embedding-similarity
+metric, which we proposed but never implemented, so top-1 accuracy is the only metric we have.
+The full provenance of every number, down to the notebook cell, is in
+[`results/results.md`](results/results.md), and the claim-by-claim check of the 2024 write-up is
+in [`docs/claims_audit.md`](docs/claims_audit.md).
+
+## The code
+
+The code under `src/biodiv/` implements both experiments as a small package: loading the
+iNaturalist annotation files through an explicit category map, separate training and evaluation
+transforms, Hiera construction with the fine-tuning schedule described above, checkpoint saving
+and resuming that works on any machine, and a zero-shot evaluator in which species identity is
+kept separate from the text of the prompt, so that two species sharing a common name are scored
+under an explicit tie rule rather than merged. Every external checkpoint is pinned to a specific
+revision. The package is covered by tests that use small synthetic fixtures and samples of the
+real upstream record formats, so they run without the datasets or the model weights.
+
+The current code does not reproduce every detail of the 2024 scripts. The differences that would
+change a measurement are listed in [`docs/changes.md`](docs/changes.md), so a run of the current
+code should be reported as a new experiment rather than as a confirmation of the numbers above.
+How each checkpoint relates to each evaluation set, including what we could confirm about data
+overlap and what remains unknown, is in [`docs/evaluation_validity.md`](docs/evaluation_validity.md).
+
+## Try it
+
+The quickest way to see the project working is the demo, which runs BioCLIP zero-shot against
+the 400 Rare Species labels. With `--sample` it streams a handful of labelled images from the
+dataset so you can check the predictions against the ground truth; with `--image` it classifies
+your own photographs. The first run downloads the pinned checkpoint, about 600 MB, and for
+`--sample` one shard of the dataset, about 250 MB.
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # or a CUDA build
+pip install -e ".[hub]"
+python scripts/demo.py --sample 6
+python scripts/demo.py --image my_photo.jpg --prompt-style common --prefix "a photo of "
+```
+
+This is what the first command printed on an eight-core CPU, in 39 seconds including the model
+load:
+
+```
+checkpoint imageomics/bioclip@ce901ab3c6a9 on cpu; 400 species labels; prompt style 'taxonomic_common', prefix ''
+
+dataset row 0   true: Cyclonaias tuberculata (purple wartyback)
+  1. Cyclonaias tuberculata       purple wartyback               cosine 0.262  <- correct
+  2. Haliotis roei                Roe's abalone                  cosine 0.191
+  3. Wallago attu                 freshwater shark               cosine 0.190
+  4. Aonyx capensis               African Clawless Otter         cosine 0.176
+  5. Potamilus amphichaenus       Texas heelsplitter             cosine 0.172
+
+dataset row 200   true: Anolis koopmani (Koopmans Anole)
+  1. Negaprion acutidens          sicklefin lemon shark          cosine 0.190
+  2. Onychoprion aleuticus        Aleutian Tern                  cosine 0.189
+  3. Thinornis cucullatus         Hooded Dotterel                cosine 0.185
+  4. Rhinoderma darwinii          Darwin's Frog                  cosine 0.183
+  5. Negaprion brevirostris       lemon shark                    cosine 0.183
+
+dataset row 400   true: Ceratophora tennentii (Rhinoceros Agama)
+  1. Anolis bitectus              Roof Anole                     cosine 0.283
+  2. Anolis macrolepis            Big-scaled Anole               cosine 0.244
+  3. Anolis baracoae              Baracoa Anole                  cosine 0.241
+  4. Anolis luciae                Saint Lucian Anole             cosine 0.230
+  5. Anolis barbouri              Hispaniolan Hopping Anole      cosine 0.222
+
+dataset row 600   true: Euryceros prevostii (Helmet Vanga)
+  1. Paradisaea rubra             Red Bird-of-Paradise           cosine 0.203
+  2. Campylopterus villaviscensio Napo Sabrewing                 cosine 0.193
+  3. Mantella aurantiaca          Golden Mantella                cosine 0.191
+  4. Ognorhynchus icterotis       Yellow-eared Parrot            cosine 0.188
+  5. Sericossypha albocristata    White-capped Tanager           cosine 0.184
+
+dataset row 800   true: Adetomyrma venatrix (dracula ant)
+  1. Adetomyrma venatrix          dracula ant                    cosine 0.226  <- correct
+  2. Ognorhynchus icterotis       Yellow-eared Parrot            cosine 0.215
+  3. Balaeniceps rex              Shoebill                       cosine 0.192
+  4. Pontoporia blainvillei       Franciscana                    cosine 0.191
+  5. Naultinus stellatus          Starry Tree Gecko              cosine 0.189
+
+dataset row 1000   true: Acropora millepora (staghorn coral)
+  1. Stylophora pistillata        Hood Coral                     cosine 0.284
+  2. Acropora acuminata           staghorn coral                 cosine 0.270
+  3. Acropora millepora           staghorn coral                 cosine 0.268  <- correct
+  4. Fungia fungites              Common Mushroom Coral          cosine 0.244
+  5. Acropora cervicornis         Staghorn Coral                 cosine 0.233
+
+top-1 correct on these 6 streamed samples: 2/6 (a demo, not an evaluation)
+```
+
+Two correct out of six is in line with the 37% we recorded on the full set. The last sample
+happens to show the shared-common-name problem in action: *Acropora acuminata* and
+*A. millepora* are both "staghorn coral" and score within 0.002 of each other.
+
+## Where everything is
+
+The shared code described above lives in `src/biodiv/`. The command-line entry points are in `scripts/`: `demo.py`,
+`train_hiera.py`, `eval_bioclip.py` and `make_results_figure.py`. The training recipes for both
+datasets and the pinned Hugging Face revisions are in `configs/`. The three notebooks in
+`notebooks/` cover the iNaturalist 2021 evaluation, the Rare Species prompt comparison, and a
+tutorial on navigating the iNaturalist data; they are committed without outputs and run on the
+fixtures when the real data is absent. The results table, the machine-readable inventory and the
+2024 Weights & Biases report are in `results/`, and the audit documents, the reproduction guide,
+the environment record, the licensing notes and the presentation (as `.pptx` and PDF) are in
+`docs/`. The tests are in `tests/` and run in CI together with the notebooks.
+
+## Reproducing the experiments
+
+The tests and smoke runs need nothing beyond the Python packages:
+
+```bash
+pip install -e ".[dev]" && pytest -q
+```
+
+The real experiments need the iNaturalist competition data on disk and, for training, a GPU:
+
+```bash
+python scripts/train_hiera.py --config configs/hiera_inat2019.yaml
+python scripts/eval_bioclip.py --dataset rare-species --checkpoint bioclip --prompt-style taxonomic_common
+```
+
+The dataset layout, the three environment variables that set the data, cache and output
+locations, the full list of commands, and the status of every check we performed are in
+[`docs/reproduction.md`](docs/reproduction.md).
+
+## What we learned
+
+Two lessons stayed with us. The first is to ask what a model has already seen before describing
+an evaluation as zero-shot. BioCLIP's strong iNaturalist numbers say less than its Rare Species
+numbers precisely because of what went into its pre-training data, and the question of overlap
+turned out to matter more than any choice of prompt. The second is that the small bookkeeping
+decisions are what make a result possible to revisit two years later: keeping species identity
+separate from the text of a prompt, saving per-image predictions rather than only an aggregate
+accuracy, and pinning the exact checkpoint revision and package versions. The code in this
+repository does all three.
+
+## Acknowledgements and references
+
+Thank you to Graham Taylor for supervising this work at the Vector Institute, to the University
+of Guelph's Machine Learning Reading Group, and to the iNaturalist community, without whom none
+of these datasets would exist.
+
+Hiera is described in Ryali et al., "Hiera: A Hierarchical Vision Transformer without the
+Bells-and-Whistles" (ICML 2023); its code is released under Apache-2.0 and its weights under
+CC BY-NC 4.0. BioCLIP, TreeOfLife-10M and the Rare Species dataset are described in Stevens et
+al., "BioCLIP: A Vision Foundation Model for the Tree of Life" (CVPR 2024); the model is MIT
+licensed and the datasets are CC0. The iNaturalist 2019 and 2021 competition datasets are from
+Van Horn et al. and the Visipedia team, and may be used for non-commercial research only, with
+no redistribution of images. We also relied on open_clip, torchvision and Weights & Biases.
+
+This repository is released under the MIT License; see `LICENSE` and
+[`docs/licensing.md`](docs/licensing.md) for the third-party terms.
