@@ -1,0 +1,40 @@
+# Hiera-tiny fine-tuning on iNaturalist 2021 "train_mini" (10,000 species,
+# 50 images per species) evaluated on the official val split (10 per species).
+dataset_name: inat2021_mini
+train_json: inat_comp/2021/train_mini.json
+val_json: inat_comp/2021/val.json
+categories_json: null
+image_root: inat_comp/2021                        # file_name values start with train_mini/ or val/
+image_size: 224
+batch_size: 512
+eval_batch_size: 512
+num_workers: 16
+
+model_name: hiera_tiny_224
+model_checkpoint: mae_in1k
+pretrained: true
+drop_path_rate: 0.1                 # NOTE: historical runs effectively used 0.0 (see docs/changes.md)
+
+epochs: 300
+warmup_epochs: 5
+base_lr: 2.0e-3
+layer_decay: 0.65
+weight_decay: 0.05
+betas: [0.9, 0.999]
+label_smoothing: 0.1
+mixup_alpha: 0.8                    # NOTE: historical runs used torchvision's default 1.0
+cutmix_alpha: 1.0
+amp: true
+
+horizontal_flip: true
+randaugment_num_ops: 9
+randaugment_magnitude: 1
+
+run_name: hiera_tiny_inat2021_mini
+checkpoint_every: 10
+resume: auto
+seed: 0
+wandb:
+  enabled: false
+  project: hiera_inat2021_transfer_learning
+  entity: null
